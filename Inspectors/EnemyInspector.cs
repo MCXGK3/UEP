@@ -19,7 +19,7 @@ namespace UnityExplorerPlus.Inspectors
 		{
 			get
 			{
-				return Traverse.Create(MouseInspector.Instance).Property("objNameLabel").GetValue<Text>();
+				return Traverse.Create(MouseInspector.Instance).Field("objNameLabel").GetValue<Text>();
 			}
 		}
 
@@ -29,7 +29,7 @@ namespace UnityExplorerPlus.Inspectors
 		{
 			get
 			{
-				return Traverse.Create(MouseInspector.Instance).Property("objPathLabel").GetValue<Text>();
+				return Traverse.Create(MouseInspector.Instance).Field("objPathLabel").GetValue<Text>();
 			}
 		}
 
