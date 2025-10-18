@@ -1,0 +1,1 @@
+global using UEUIManager = UnityExplorer.UI.UIManager;
