@@ -129,22 +129,42 @@ public static class PathchSetComponentCell
                 cell.Button.ButtonText.text += "<color=grey>(</color><color=green>" + ((EventRegister)data).InspectorInfo + "</color><color=grey>)</color>";
             }
         }
-        // if (data is not MonoBehaviour)
-        // {
-        //     PropertyInfo enabled;
-        //     if (!enabledProp.TryGetValue(type, out enabled))
-        //     {
-        //         enabled = Enumerable.FirstOrDefault<PropertyInfo>(type.GetProperties(), (PropertyInfo x) => x.Name.Equals("enabled", StringComparison.OrdinalIgnoreCase) && x.PropertyType == typeof(bool) && x.CanWrite && x.CanRead);
-        //         enabledProp[type] = enabled;
-        //     }
-        //     if (enabled != null)
-        //     {
-        //         bool e = (bool)enabled.GetValue(data);
-        //         cell.BehaviourToggle.interactable = true;
-        //         cell.BehaviourToggle.SetIsOnWithoutNotify(e);
-        //         cell.BehaviourToggle.graphic.color = new UnityEngine.Color(0.8f, 1f, 0.8f, 0.3f);
-        //     }
-        // }
+        if (data is not MonoBehaviour)
+        {
+            PropertyInfo enabled;
+            if (!enabledProp.TryGetValue(type, out enabled))
+            {
+                enabled = Enumerable.FirstOrDefault<PropertyInfo>(type.GetProperties(), (PropertyInfo x) => x.Name.Equals("enabled", StringComparison.OrdinalIgnoreCase) && x.PropertyType == typeof(bool) && x.CanWrite && x.CanRead);
+                enabledProp[type] = enabled;
+            }
+            if (enabled != null)
+            {
+                bool e = (bool)enabled.GetValue(data);
+                cell.BehaviourToggle.interactable = true;
+                cell.BehaviourToggle.SetIsOnWithoutNotify(e);
+                cell.BehaviourToggle.graphic.color = new UnityEngine.Color(0.8f, 1f, 0.8f, 0.3f);
+            }
+        }
+    }
+}
+
+[HarmonyPatch(typeof(UnityExplorer.UI.Widgets.ComponentList), "OnBehaviourToggled", typeof(bool), typeof(int))]
+public class Patch_ComponentList_OnBehaviourToggled
+{
+    public static bool Prefix(UnityExplorer.UI.Widgets.ComponentList __instance, bool value, int index)
+    {
+        return true;
+    }
+    public static void Postfix(UnityExplorer.UI.Widgets.ComponentList __instance, bool value, int index)
+    {
+        Component data = ((List<Component>)Traverse.Create(__instance.Parent).Method("GetComponentEntries").GetValue())[index];
+        Type type = data.GetType();
+        PropertyInfo p;
+        bool flag = PathchSetComponentCell.enabledProp.TryGetValue(type, out p);
+        if (flag)
+        {
+            p.SetValue(data, value);
+        }
     }
 }
 
