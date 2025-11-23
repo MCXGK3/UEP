@@ -31,11 +31,11 @@
     <!--If you're unable resolve this dependency, check that you're using the nuget v3 package feed instead of v2.-->
     <PackageReference Include="Silksong.GameLibs" Version="1.1.0-silksong1.0.28650"/>
     <Reference Include="UnityExplorer">
-            <HintPath>f:\SteamLibrary\steamapps\common\Hollow Knight Silksong\BepInEx\plugins\sinai-dev-UnityExplorer\UnityExplorer.BIE5.Mono.dll</HintPath>
+            <HintPath>C:\Users\shownyoung\AppData\Roaming\r2modmanPlus-local\HollowKnightSilksong\profiles\develop\BepInEx\plugins\sinai-UnityExplorer\sinai-dev-UnityExplorer\UnityExplorer.BIE5.Mono.dll</HintPath>
             <Private>True</Private>
         </Reference>
         <Reference Include="UniverseLib">
-            <HintPath>f:\SteamLibrary\steamapps\common\Hollow Knight Silksong\BepInEx\plugins\sinai-dev-UnityExplorer\UniverseLib.Mono.dll</HintPath>
+            <HintPath>C:\Users\shownyoung\AppData\Roaming\r2modmanPlus-local\HollowKnightSilksong\profiles\develop\BepInEx\plugins\sinai-UnityExplorer\sinai-dev-UnityExplorer\UniverseLib.Mono.dll</HintPath>
             <Private>True</Private>
         </Reference>
   </ItemGroup>
@@ -48,7 +48,7 @@
           <Binaries Include="$(TargetDir)/$(TargetName).pdb"/>
       </ItemGroup>
 
-      <Copy SourceFiles="@(Binaries)" DestinationFolder="$(SilksongFolder)/BepInEx/plugins/$(TargetName)" />
+      <Copy SourceFiles="@(Binaries)" DestinationFolder="C:\Users\shownyoung\AppData\Roaming\r2modmanPlus-local\HollowKnightSilksong\profiles\develop\BepInEx\plugins\shownyoung-UEP" />
 
       <PropertyGroup>
           <ExportFolder>bin/Publish</ExportFolder>

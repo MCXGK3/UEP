@@ -39,6 +39,7 @@ public partial class UEPPlugin : BaseUnityPlugin
     private IEnumerator Init()
     {
         harmony.PatchAll();
+        harmony.PatchAll(typeof(Patch_ReflectionInspector_For_Fsm));
         while (UEUIManager.Initializing)
         {
             yield return null;
