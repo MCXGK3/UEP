@@ -8,6 +8,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityExplorer.UI.Panels;
 using UnityExplorer.UI.Widgets;
+using UniverseLib;
 using UniverseLib.UI;
 using UniverseLib.UI.Models;
 using UniverseLib.UI.ObjectPool;
@@ -56,6 +57,17 @@ public class FsmInspector : InspectorBase
     List<FsmNode> fsmNodes = new List<FsmNode>();
 
     FsmNode Selected_FsmState { get; set; }
+    Dictionary<string, FsmNode> node_dicts = new();
+    FsmNode Active_FsmState { get; set; }
+    ScrollPool<StateActionCell> actions_info;
+    StateActionList action_info_list = new(null);
+    Toggle auto_refresh_toggle;
+    public bool AutoRefresh => auto_refresh_toggle.isOn;
+
+    Toggle info_view_toggle;
+
+    GameObject info_view;
+
 
 
     public override void OnBorrowedFromPool(object target)
@@ -106,6 +118,18 @@ public class FsmInspector : InspectorBase
         hidden_name_text.Component.textComponent.color = Color.clear;
         UIFactory.SetLayoutElement(hidden_name_text.Component.gameObject, minHeight: 35, flexibleHeight: 0, flexibleWidth: 9999);
 
+
+        var toggle_go = UIFactory.CreateToggle(top_row, "InfoViewToggle", out info_view_toggle, out Text info_view_toggle_text);
+        info_view_toggle.isOn = true;
+        info_view_toggle_text.text = "Open Info";
+        UIFactory.SetLayoutElement(toggle_go, minWidth: 100, flexibleWidth: 0);
+        info_view_toggle.onValueChanged.AddListener((val) =>
+        {
+            info_view.SetActive(val);
+        });
+
+
+
         #endregion
 
         #region StateRow
@@ -126,10 +150,42 @@ public class FsmInspector : InspectorBase
         UIFactory.SetLayoutElement(fsm_view_pos.gameObject, minWidth: 100, flexibleWidth: 0);
 
         var fsm_view_pos_reset = UIFactory.CreateButton(state_row, "FsmViewPosReset", "Reset");
-        UIFactory.SetLayoutElement(fsm_view_pos_reset.GameObject, minWidth: 120, minHeight: 25, flexibleWidth: 0);
+        UIFactory.SetLayoutElement(fsm_view_pos_reset.GameObject, minWidth: 100, minHeight: 25, flexibleWidth: 0);
         fsm_view_pos_reset.OnClick = () =>
         {
             fsm_view_content.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 0);
+        };
+
+        fsm_active_state_name = UIFactory.CreateLabel(state_row, "FsmActiveStateName", "not set", TextAnchor.MiddleCenter);
+        UIFactory.SetLayoutElement(fsm_active_state_name.gameObject, minWidth: 100, flexibleWidth: 0);
+        var fsm_active_state_locate = UIFactory.CreateButton(state_row, "FsmActiveStateLocate", "Locate");
+        UIFactory.SetLayoutElement(fsm_active_state_locate.GameObject, minWidth: 100, minHeight: 25, flexibleWidth: 0);
+        fsm_active_state_locate.OnClick += () =>
+        {
+            if (Target.ActiveStateName != null)
+            {
+                node_dicts.TryGetValue(Target.ActiveStateName, out FsmNode node);
+                if (node != null)
+                {
+                    fsm_view_content.GetComponent<RectTransform>().anchoredPosition = -node.RectTransform.anchoredPosition;
+                }
+            }
+
+        };
+
+        fsm_selected_state_name = UIFactory.CreateLabel(state_row, "FsmSelectedStateName",
+        "<color=grey>Selected: </color>null",
+        TextAnchor.MiddleCenter);
+        UIFactory.SetLayoutElement(fsm_selected_state_name.gameObject, minWidth: 100, flexibleWidth: 0);
+        var fsm_selected_state_locate = UIFactory.CreateButton(state_row, "FsmActiveStateLocate", "Locate");
+        UIFactory.SetLayoutElement(fsm_selected_state_locate.GameObject, minWidth: 100, minHeight: 25, flexibleWidth: 0);
+        fsm_selected_state_locate.OnClick += () =>
+        {
+            if (Selected_FsmState != null)
+            {
+                fsm_view_content.GetComponent<RectTransform>().anchoredPosition = -Selected_FsmState.RectTransform.anchoredPosition;
+            }
+
         };
 
         #endregion
@@ -142,10 +198,10 @@ public class FsmInspector : InspectorBase
         UIFactory.SetLayoutElement(fsm_view, minWidth: 0, flexibleWidth: 9999, flexibleHeight: 9999);
         CreateFsmView(fsm_view, fsm_view_content, scrollbar);
 
-        var infoview = UIFactory.CreateVerticalGroup(content, "InfoView", false, false, true, true, 5, default, new(0.1f, 0.1f, 0.1f, 0.5f), TextAnchor.UpperCenter);
-        UIFactory.SetLayoutElement(infoview, minWidth: 250, preferredWidth: 300, flexibleHeight: 9999, flexibleWidth: 0);
+        info_view = UIFactory.CreateVerticalGroup(content, "InfoView", false, false, true, true, 5, default, new(0.1f, 0.1f, 0.1f, 0.5f), TextAnchor.UpperCenter);
+        UIFactory.SetLayoutElement(info_view, minWidth: 400, preferredWidth: 600, flexibleHeight: 9999, flexibleWidth: 0);
 
-        var info_tabs_holder = UIFactory.CreateHorizontalGroup(infoview, "InfoTabHolder", false, false, true, true, 5, default, new(1, 1, 1, 0), TextAnchor.MiddleLeft);
+        var info_tabs_holder = UIFactory.CreateHorizontalGroup(info_view, "InfoTabHolder", false, false, true, true, 5, default, new(1, 1, 1, 0), TextAnchor.MiddleLeft);
         UIFactory.SetLayoutElement(info_tabs_holder, minHeight: 35, flexibleHeight: 0, flexibleWidth: 9999);
 
         var info_tab_color = new ColorBlock()
@@ -165,12 +221,20 @@ public class FsmInspector : InspectorBase
         variables_tab = UIFactory.CreateButton(info_tabs_holder, "VariablesTab", "Variables", info_tab_color);
         UIFactory.SetLayoutElement(variables_tab.GameObject, minWidth: 90, minHeight: 30, flexibleHeight: 0, flexibleWidth: 0);
 
-        var info_details = UIFactory.CreateHorizontalGroup(infoview, "InfoDetails", false, false, true, true, bgColor: Color.clear, childAlignment: TextAnchor.UpperCenter);
+        var refresh_toggle = UIFactory.CreateToggle(info_tabs_holder, "AutoRefreshToggle", out auto_refresh_toggle, out Text refresh_text);
+        auto_refresh_toggle.isOn = false;
+        refresh_text.text = "Auto-update";
+        UIFactory.SetLayoutElement(refresh_toggle, minWidth: 100, flexibleWidth: 0);
+
+        var info_details = UIFactory.CreateHorizontalGroup(info_view, "InfoDetails", false, false, true, true, bgColor: Color.clear, childAlignment: TextAnchor.UpperCenter);
         UIFactory.SetLayoutElement(info_details, flexibleHeight: 9999, flexibleWidth: 9999);
 
-        state_page = UIFactory.CreateVerticalGroup(info_details, "StatePage", false, false, true, true, bgColor: Color.green, childAlignment: TextAnchor.UpperCenter);
+        state_page = UIFactory.CreateVerticalGroup(info_details, "StatePage", false, false, true, true, bgColor: Color.clear, childAlignment: TextAnchor.UpperCenter);
         UIFactory.SetLayoutElement(state_page, flexibleHeight: 9999, flexibleWidth: 9999);
-
+        actions_info = UIFactory.CreateScrollPool<StateActionCell>(state_page, "StateActions",
+        out GameObject actions_ui_root, out GameObject actions_content);
+        UIFactory.SetLayoutElement(actions_ui_root, flexibleHeight: 9999, flexibleWidth: 9999);
+        actions_info.Initialize(action_info_list);
         state_page.SetActive(false);
 
         events_page = UIFactory.CreateVerticalGroup(info_details, "EventsPage", false, false, true, true, bgColor: Color.yellow, childAlignment: TextAnchor.UpperCenter);
@@ -234,6 +298,31 @@ public class FsmInspector : InspectorBase
             return;
         }
         fsm_view_pos.text = "<color=grey>View Pos: </color>" + (-fsm_view_content.GetComponent<RectTransform>().anchoredPosition).ToString("F6");
+        fsm_active_state_name.text = "<color=grey>Active: </color>" + Target.ActiveStateName;
+        if (Target.ActiveStateName != null && node_dicts.TryGetValue(Target.ActiveStateName, out FsmNode node))
+        {
+            if (node != Active_FsmState)
+            {
+                Active_FsmState?.FsmInActive();
+                node.FsmActive();
+                Active_FsmState = node;
+            }
+        }
+        if (AutoRefresh)
+        {
+            switch (info_page_state)
+            {
+                case "State":
+                    foreach (var state_action_cell in actions_info.CellPool)
+                    {
+                        if (!state_action_cell.Enabled || state_action_cell.Target == null)
+                            continue;
+                        state_action_cell.Update();
+                    }
+                    break;
+                default: break;
+            }
+        }
     }
     Vector2 GetMousePositionInContent()
     {
@@ -345,11 +434,14 @@ public class FsmInspector : InspectorBase
         node.UIRoot.transform.SetParent(fsm_view_content.transform, false);
         node.SetTarget(this, fsmState, is_begin_state);
         fsmNodes.Add(node);
+        node_dicts.Add(fsmState.Name, node);
     }
 
     public override void OnReturnToPool()
     {
         ClearAll();
+        info_view_toggle.isOn = true;
+        auto_refresh_toggle.isOn = false;
         base.OnReturnToPool();
 
     }
@@ -360,6 +452,13 @@ public class FsmInspector : InspectorBase
             node.OnReturnToPool();
         }
         fsmNodes.Clear();
+        node_dicts.Clear();
+        fsm_name_text.text = "notset";
+        fsm_started.isOn = true;
+        use_template.isOn = true;
+        fsm_selected_state_name.text = "<color=grey>Selected: </color>null";
+
+
     }
 
     private void SetTarget(PlayMakerFSM target)
@@ -378,11 +477,18 @@ public class FsmInspector : InspectorBase
     }
     public void SelectState(FsmNode node)
     {
+        if (node == null)
+        {
+            return;
+        }
         if (Selected_FsmState != null)
         {
             Selected_FsmState.UnSelect();
         }
         node.Select();
         Selected_FsmState = node;
+        fsm_selected_state_name.text = "<color=grey>Selected: </color>" + node.Target.Name;
+        action_info_list.SetTarget(node);
+        actions_info.Refresh(true, true);
     }
 }

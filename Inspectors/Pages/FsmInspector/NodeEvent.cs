@@ -8,7 +8,7 @@ public class NodeEventCell : ICell
 {
     public GameObject UIRoot { get; set; }
 
-    public float DefaultHeight => 25f;
+    public float DefaultHeight => 16f;
     public string Name => EventText.text;
     public Text EventText { get; set; }
 

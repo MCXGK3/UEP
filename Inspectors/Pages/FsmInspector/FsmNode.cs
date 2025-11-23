@@ -29,8 +29,8 @@ public class FsmNode : IPooledObject, ICellPoolDataSource<NodeEventCell>
     public ScrollPool<NodeEventCell> event_cells;
     List<NodeEventCell> events = new();
     GameObject event_ui_root;
-    FsmState Target { get; set; }
-    FsmInspector owner;
+    public FsmState Target { get; set; }
+    public FsmInspector owner;
 
 
     public GameObject CreateContent(GameObject parent)
