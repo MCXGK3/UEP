@@ -51,6 +51,12 @@ public class VariablesPage(FsmInspector owner) : ICellPoolDataSource<CacheMember
         page.cells.Initialize(page);
         return page;
     }
+    public void ClearAll()
+    {
+        Target = null;
+        cacheMembers.Clear();
+        cells.Refresh(true, true);
+    }
     public void SetTarget(FsmVariables variables)
     {
         Target = variables;

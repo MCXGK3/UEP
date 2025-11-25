@@ -6,6 +6,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityExplorer.Inspectors;
+using UniverseLib;
 using UniverseLib.UI;
 using UniverseLib.UI.Models;
 using UniverseLib.UI.ObjectPool;
@@ -28,6 +29,7 @@ public class FsmNode : IPooledObject
     GameObject event_ui_root;
     public FsmState Target { get; set; }
     public FsmInspector owner;
+    public ColorBlock default_color;
 
 
     public GameObject CreateContent(GameObject parent)
@@ -51,6 +53,7 @@ public class FsmNode : IPooledObject
             disabledColor = Color.blue,
         };
         StateName = UIFactory.CreateButton(content, "StateName", "StateName", state_colors);
+        default_color = StateName.Component.colors;
         StateName.ButtonText.horizontalOverflow = HorizontalWrapMode.Wrap;
         UIFactory.SetLayoutElement(StateName.GameObject, minWidth: 100, minHeight: 16, flexibleHeight: 0, flexibleWidth: 9999);
         StateName.GameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -59,7 +62,7 @@ public class FsmNode : IPooledObject
         StateName.ButtonText.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
         StateName.OnClick += OnClickNode;
         // UIFactory.SetLayoutElement(state_name.ButtonText.gameObject, minWidth: 80, minHeight: 20, flexibleHeight: 0, flexibleWidth: 0);
-        event_ui_root = UIFactory.CreateVerticalGroup(UIRoot, "StateEvents", false, false, true, true, 1, bgColor: Color.black, childAlignment: TextAnchor.UpperCenter);
+        event_ui_root = UIFactory.CreateVerticalGroup(UIRoot, "StateEvents", false, false, true, true, 1, bgColor: new Color(1, 1, 1, 0.5f), childAlignment: TextAnchor.UpperCenter);
         UIFactory.SetLayoutElement(event_ui_root, minWidth: 100);
         event_ui_root.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         // event_cells = UIFactory.CreateScrollPool<NodeEventCell>(UIRoot, "StateEvents", out GameObject event_ui_root, out GameObject event_content, bgColor: Color.yellow);
@@ -74,6 +77,17 @@ public class FsmNode : IPooledObject
     public void OnCellBorrowed(NodeEventCell cell)
     {
 
+    }
+    public void Mark()
+    {
+        RuntimeHelper.SetColorBlock(StateName.Component, Color.cyan);
+        StateName.ButtonText.color = Color.black;
+
+    }
+    public void UnMark()
+    {
+        RuntimeHelper.SetColorBlock(StateName.Component, default_color);
+        StateName.ButtonText.color = Color.white;
     }
 
 
@@ -102,6 +116,7 @@ public class FsmNode : IPooledObject
     {
         UnSelect();
         NotBeginState();
+        UnMark();
         FsmInActive();
         ClearEvents();
         Target = null;

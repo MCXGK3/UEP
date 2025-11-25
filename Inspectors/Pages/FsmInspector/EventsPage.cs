@@ -20,6 +20,10 @@ public class EventsPage(FsmInspector owner) : ICellPoolDataSource<FsmEventCell>
     {
 
     }
+    public void ClearAll()
+    {
+        SetTarget(null);
+    }
     public static EventsPage Create(GameObject parent, FsmInspector owner)
     {
         EventsPage page = new EventsPage(owner);

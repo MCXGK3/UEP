@@ -350,10 +350,10 @@ public class LineRef : IPooledObject
     public static ColorBlock default_colors = new()
     {
         normalColor = new Color(0.2f, 0.2f, 0.2f),
-        selectedColor = Color.white,
+        selectedColor = new Color(0.2f, 0.2f, 0.2f),
         pressedColor = Color.white,
-        highlightedColor = new Color(0.3f, 0.3f, 0.3f),
-        disabledColor = Color.black,
+        highlightedColor = Color.white,
+        disabledColor = Color.white,
         colorMultiplier = 1f
     };
 
@@ -372,6 +372,24 @@ public class LineRef : IPooledObject
 
     public bool Enabled => UIRoot.activeSelf;
 
+    public void Select()
+    {
+        Line.interactable = false;
+    }
+    public void UnSelect()
+    {
+        Line.interactable = true;
+    }
+    public void Mark()
+    {
+        RuntimeHelper.SetColorBlock(Line, Color.cyan);
+    }
+    public void UnMark()
+    {
+        RuntimeHelper.SetColorBlock(Line, default_colors);
+    }
+
+
 
 
     public GameObject UIRoot { get; set; }
@@ -383,7 +401,7 @@ public class LineRef : IPooledObject
         Navigation navigation = selectable.navigation;
         navigation.mode = Navigation.Mode.Explicit;
         selectable.navigation = navigation;
-        UniverseLib.RuntimeHelper.SetColorBlock(selectable, new Color(0.2f, 0.2f, 0.2f), new Color(0.3f, 0.3f, 0.3f), new Color(1, 1, 1));
+        UniverseLib.RuntimeHelper.SetColorBlock(selectable, default_colors);
     }
     public void SetPath(List<Vector2> path, bool should_arrow = true, ColorBlock? block = null)
     {
@@ -434,6 +452,8 @@ public class LineRef : IPooledObject
     {
         SetPath([Vector2.zero, Vector2.zero], false, default_colors);
         Line.ClearAction();
+        UnSelect();
+        UnMark();
         Pool<LineRef>.Return(this);
     }
 

@@ -33,7 +33,10 @@ public class StateActionPage() : ICellPoolDataSource<StateActionCell>
         page.cells.Initialize(page);
         return page;
     }
-
+    public void ClearAll()
+    {
+        SetTarget(null);
+    }
     public void SetCell(StateActionCell cell, int index)
     {
         if (index < 0 || index >= ItemCount)

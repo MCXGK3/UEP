@@ -16,10 +16,11 @@ public class NodeEventCell : ICell
     public bool Enabled => UIRoot.activeSelf;
 
     public RectTransform Rect { get; set; }
-    public readonly Color default_color = new Color(0.11f, 0.11f, 0.11f, 0.11f);
+    public readonly Color default_color = Color.black;
 
     public FsmEvent Target { get; set; }
     public bool InGlobalTransition { get; set; }
+    ContentSizeFitter contentSizeFitter;
 
     public GameObject CreateContent(GameObject parent)
     {
@@ -29,7 +30,8 @@ public class NodeEventCell : ICell
         Rect.anchorMax = new Vector2(0.5f, 0.5f);
         Rect.pivot = new Vector2(0.5f, 0.5f);
         Rect.sizeDelta = new Vector2(25f, 25f);
-        UIRoot.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        contentSizeFitter = UIRoot.AddComponent<ContentSizeFitter>();
+        contentSizeFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
         UIFactory.SetLayoutElement(UIRoot, 100, flexibleWidth: 9999, minHeight: 16, flexibleHeight: 0);
         EventText = UIFactory.CreateLabel(UIRoot, "NodeEventText", "NotSet", TextAnchor.MiddleCenter, Color.white);
         UIFactory.SetLayoutElement(EventText.gameObject, flexibleWidth: 9999, minHeight: 16, flexibleHeight: 0);
@@ -61,9 +63,10 @@ public class NodeEventCell : ICell
         EventText.text = evt.Name;
         InGlobalTransition = in_global_transition;
         UIRoot.GetComponent<Image>().color = in_global_transition ? Color.black : default_color;
+        contentSizeFitter.enabled = in_global_transition;
         if (has_no_dest)
         {
-            UIRoot.GetComponent<Image>().color = new Color(1, 1, 0, 0.5f);
+            UIRoot.GetComponent<Image>().color = new Color(1, 0, 1, 0.5f);
         }
     }
 }

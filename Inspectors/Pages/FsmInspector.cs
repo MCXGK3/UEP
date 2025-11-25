@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-
+using System.Linq;
 using HutongGames.PlayMaker;
 using UEP;
 using UnityEngine;
@@ -79,17 +79,29 @@ public class FsmInspector : InspectorBase
 
     List<LineRef> lines = new();
 
-    public static List<FsmInspector> inspectors = new List<FsmInspector>();
+    Dictionary<FsmTransition, LineRef> transitions_to_lines = new();
+    Dictionary<LineRef, FsmTransition> lines_to_transitions = new();
+
+    public LineRef SelectedLineRef { get; set; }
+
+    public HashSet<FsmNode> MarkedNodes { get; set; } = new();
+    public HashSet<LineRef> MarkedLines { get; set; } = new();
+
+    public static List<FsmInspector> fsm_inspectors = new List<FsmInspector>();
 
 
 
 
 
+    public FsmNode GetFsmNode(string state_name)
+    {
+        return node_dicts.GetValueOrDefault(state_name, null);
+    }
     public override void OnBorrowedFromPool(object target)
     {
         base.OnBorrowedFromPool(target);
         SetTarget(Target);
-        inspectors.Add(this);
+        fsm_inspectors.Add(this);
         UEPPlugin.Instance.StartCoroutine(InitCoroutine());
     }
     private IEnumerator InitCoroutine()
@@ -476,19 +488,20 @@ public class FsmInspector : InspectorBase
             RectTransform transform = node.StateName.GameObject.transform as RectTransform;
             var pos = GetCenterForFsmContent(transform.TransformPoint(transform.rect.center));
             ent.Rect.anchoredPosition = pos - new Vector2(0, -50);
-            (node.Target.Name + " 的位置在" + pos + ",把对应的event放在" + ent.Rect.anchoredPosition).LogInfo();
+            // (node.Target.Name + " 的位置在" + pos + ",把对应的event放在" + ent.Rect.anchoredPosition).LogInfo();
         }
         global_events.Add(ent);
-        CreateLine(ent, node);
+        CreateLine(ent, node, transition);
     }
 
     public override void OnReturnToPool()
     {
+
         ClearAll();
         info_view_toggle.isOn = true;
         auto_refresh_toggle.isOn = false;
         base.OnReturnToPool();
-        inspectors.Remove(this);
+        fsm_inspectors.Remove(this);
 
     }
     public void ClearAll()
@@ -496,7 +509,14 @@ public class FsmInspector : InspectorBase
         if (Selected_FsmState != null)
         {
             Selected_FsmState.UnSelect();
+            Selected_FsmState = null;
         }
+        if (SelectedLineRef != null)
+        {
+            SelectedLineRef.UnSelect();
+            SelectedLineRef = null;
+        }
+        ClearAllMarks();
         fsm_name_text.text = "notset";
         fsm_started.isOn = true;
         use_template.isOn = true;
@@ -514,9 +534,17 @@ public class FsmInspector : InspectorBase
             node.OnReturnToPool();
         }
         lines.Clear();
+        lines_to_transitions.Clear();
+        transitions_to_lines.Clear();
         global_events.Clear();
         fsmNodes.Clear();
         node_dicts.Clear();
+        operation_page_data.ClearAll();
+        action_page_data.ClearAll();
+        events_page_data.ClearAll();
+        variables_page_data.ClearAll();
+
+
     }
 
     private void SetTarget(PlayMakerFSM target)
@@ -546,12 +574,17 @@ public class FsmInspector : InspectorBase
                 if (tonode == null) continue;
                 else
                 {
-                    CreateLine(fromnode.events_dict[transition.FsmEvent], tonode);
+                    CreateLine(fromnode.events_dict[transition.FsmEvent], tonode, transition);
                 }
             }
         }
         events_page_data.SetTarget(Target);
         variables_page_data.SetTarget(Target.FsmVariables);
+        operation_page_data.Refresh();
+    }
+    public void SelectState(string state_name)
+    {
+        SelectState(GetFsmNode(state_name));
     }
     public void SelectState(FsmNode node)
     {
@@ -567,8 +600,92 @@ public class FsmInspector : InspectorBase
         Selected_FsmState = node;
         fsm_selected_state_name.text = "<color=grey>Selected: </color>" + node.Target.Name;
         action_page_data.SetTarget(node);
+        operation_page_data.SelectedState.Select(node.Target);
+    }
+    public void MarkState(string state_name)
+    {
+        MarkState(GetFsmNode(state_name));
+    }
+    public void MarkState(FsmNode node)
+    {
+        if (node == null)
+        {
+            return;
+        }
+        if (!MarkedNodes.Contains(node))
+        {
+            node.Mark();
+            MarkedNodes.Add(node);
+        }
+    }
+    public void ClearAllMarks()
+    {
+        foreach (var node in MarkedNodes)
+        {
+            node.UnMark();
+        }
+        foreach (var line in MarkedLines)
+        {
+            line.UnMark();
+        }
+        MarkedNodes.Clear();
+        MarkedLines.Clear();
+    }
+    public void MarkLine(bool is_global, string from_state_name, string event_name)
+    {
+        MarkLine(transitions_to_lines.GetValueOrDefault(FindTransition(is_global, from_state_name, event_name), null));
+    }
+    public void MarkLine(LineRef line)
+    {
+        if (line == null) return;
+        if (!MarkedLines.Contains(line))
+        {
+            line.Mark();
+            MarkedLines.Add(line);
+        }
+    }
+    private FsmTransition FindTransition(bool is_global, string from_state_name, string event_name)
+    {
+        FsmTransition res = null;
+        if (is_global)
+        {
+            res = Target.FsmGlobalTransitions.First((transition) => (transition.EventName == event_name));
+        }
+        else
+        {
+            var state = Target.FsmStates.First((state) => state.Name == from_state_name);
+            res = state.Transitions.First((transition) => transition.EventName == event_name);
+        }
+        return res;
     }
 
+    public void SelectLine(bool is_global, string from_state_name, string event_name)
+    {
+        SelectLine(FindTransition(is_global, from_state_name, event_name));
+    }
+    public void SelectLine(FsmTransition transition)
+    {
+        if (transition == null) return;
+        else
+        {
+            SelectLine(transitions_to_lines.GetValueOrDefault(transition, null));
+        }
+    }
+    public void SelectLine(LineRef line)
+    {
+        if (line == null) return;
+        if (line == SelectedLineRef) return;
+        if (!lines_to_transitions.TryGetValue(line, out FsmTransition transition)) return;
+        if (SelectedLineRef != null)
+        {
+            SelectedLineRef.UnSelect();
+        }
+        line.Select();
+        SelectedLineRef = line;
+        operation_page_data.SelectedTransition.Select(transition);
+
+
+    }
     public Vector2 GetCenterForFsmContent(Vector2 world_pos)
     {
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
@@ -579,8 +696,9 @@ public class FsmInspector : InspectorBase
         );
         return local_pos;
     }
-    public void CreateLine(NodeEventCell eventCell, FsmNode fsmNode)
+    public void CreateLine(NodeEventCell eventCell, FsmNode fsmNode, FsmTransition transition)
     {
+        if (fsmNode == null) return;
         Rect rect1 = eventCell.Rect.rect;
         Rect rect2 = fsmNode.StateName.GameObject.GetComponent<RectTransform>().rect;
 
@@ -612,9 +730,17 @@ public class FsmInspector : InspectorBase
             line.SetPath([start, end]);
         }
         lines.Add(line);
-
+        lines_to_transitions.Add(line, transition);
+        transitions_to_lines.Add(transition, line);
+        line.Line.OnLineClick += () =>
+        {
+            SelectLine(line);
+        };
 
     }
+
+
+
     static Vector2 ComputeLocation(Rect rect1, Rect rect2, out bool is_left)
     {
         var midx1 = rect1.center.x;
