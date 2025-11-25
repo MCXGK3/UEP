@@ -375,6 +375,7 @@ public class LineRef : IPooledObject
     public void Select()
     {
         Line.interactable = false;
+        
     }
     public void UnSelect()
     {

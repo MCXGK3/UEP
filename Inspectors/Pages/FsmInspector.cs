@@ -302,6 +302,9 @@ public class FsmInspector : InspectorBase
         bool is_variables = false;
         switch (page_name)
         {
+            case "Close":
+                info_page_state = page_name;
+                break;
             case "Operations":
                 info_page_state = page_name;
                 is_operations = true;
@@ -506,6 +509,9 @@ public class FsmInspector : InspectorBase
     }
     public void ClearAll()
     {
+        Active_FsmState?.FsmInActive();
+        Active_FsmState = null;
+        ChangeInfoPage("Close");
         if (Selected_FsmState != null)
         {
             Selected_FsmState.UnSelect();
@@ -681,6 +687,7 @@ public class FsmInspector : InspectorBase
             SelectedLineRef.UnSelect();
         }
         line.Select();
+        HighLightLine(line);
         SelectedLineRef = line;
         operation_page_data.SelectedTransition.Select(transition);
 
@@ -739,6 +746,10 @@ public class FsmInspector : InspectorBase
 
     }
 
+    public void HighLightLine(LineRef line)
+    {
+        line.Rect.SetSiblingIndex(lines.Count - 1);
+    }
 
 
     static Vector2 ComputeLocation(Rect rect1, Rect rect2, out bool is_left)
