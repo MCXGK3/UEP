@@ -1,11 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+
 using HutongGames.PlayMaker;
 using UEP;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.UIElements.UIR;
 using UnityExplorer.UI.Panels;
 using UnityExplorer.UI.Widgets;
 using UniverseLib;
@@ -40,6 +42,9 @@ public class FsmInspector : InspectorBase
     ButtonRef variables_tab;
     GameObject variables_page;
 
+    ButtonRef operations_tab;
+    GameObject operations_page;
+
     GameObject fsm_view_content;
     GameObject fsm_view;
 
@@ -56,11 +61,10 @@ public class FsmInspector : InspectorBase
 
     List<FsmNode> fsmNodes = new List<FsmNode>();
 
+    List<NodeEventCell> global_events = new List<NodeEventCell>();
     FsmNode Selected_FsmState { get; set; }
     Dictionary<string, FsmNode> node_dicts = new();
     FsmNode Active_FsmState { get; set; }
-    ScrollPool<StateActionCell> actions_info;
-    StateActionList action_info_list = new(null);
     Toggle auto_refresh_toggle;
     public bool AutoRefresh => auto_refresh_toggle.isOn;
 
@@ -68,13 +72,24 @@ public class FsmInspector : InspectorBase
 
     GameObject info_view;
 
+    EventsPage events_page_data;
+    VariablesPage variables_page_data;
+    StateActionPage action_page_data;
+    OperationsPage operation_page_data;
+
+    List<LineRef> lines = new();
+
+    public static List<FsmInspector> inspectors = new List<FsmInspector>();
+
+
+
 
 
     public override void OnBorrowedFromPool(object target)
     {
         base.OnBorrowedFromPool(target);
         SetTarget(Target);
-
+        inspectors.Add(this);
         UEPPlugin.Instance.StartCoroutine(InitCoroutine());
     }
     private IEnumerator InitCoroutine()
@@ -89,7 +104,6 @@ public class FsmInspector : InspectorBase
 
     public override GameObject CreateContent(GameObject parent)
     {
-
         UIRoot = UIFactory.CreateVerticalGroup(parent, "FsmInspector", false, false, true, true, 5,
                 new Vector4(4, 4, 4, 4), new Color(0.065f, 0.065f, 0.065f));
         #region TopRow
@@ -212,6 +226,9 @@ public class FsmInspector : InspectorBase
             highlightedColor = Color.blue,
             disabledColor = new Color(0.1f, 0.1f, 0.1f),
         };
+        operations_tab = UIFactory.CreateButton(info_tabs_holder, "OperationsTab", "Operations", info_tab_color);
+        UIFactory.SetLayoutElement(operations_tab.GameObject, minWidth: 90, minHeight: 30, flexibleHeight: 0, flexibleWidth: 0);
+
         state_tab = UIFactory.CreateButton(info_tabs_holder, "StateTab", "State", info_tab_color);
         UIFactory.SetLayoutElement(state_tab.GameObject, minWidth: 90, minHeight: 30, flexibleHeight: 0, flexibleWidth: 0);
 
@@ -229,21 +246,31 @@ public class FsmInspector : InspectorBase
         var info_details = UIFactory.CreateHorizontalGroup(info_view, "InfoDetails", false, false, true, true, bgColor: Color.clear, childAlignment: TextAnchor.UpperCenter);
         UIFactory.SetLayoutElement(info_details, flexibleHeight: 9999, flexibleWidth: 9999);
 
+        operations_page = UIFactory.CreateVerticalGroup(info_details, "OperationsPage", false, false, true, true, bgColor: Color.clear, childAlignment: TextAnchor.UpperCenter);
+        UIFactory.SetLayoutElement(operations_page, flexibleHeight: 9999, flexibleWidth: 9999);
+        operations_page.SetActive(false);
+        operation_page_data = OperationsPage.Create(operations_page, this);
+
         state_page = UIFactory.CreateVerticalGroup(info_details, "StatePage", false, false, true, true, bgColor: Color.clear, childAlignment: TextAnchor.UpperCenter);
         UIFactory.SetLayoutElement(state_page, flexibleHeight: 9999, flexibleWidth: 9999);
-        actions_info = UIFactory.CreateScrollPool<StateActionCell>(state_page, "StateActions",
-        out GameObject actions_ui_root, out GameObject actions_content);
-        UIFactory.SetLayoutElement(actions_ui_root, flexibleHeight: 9999, flexibleWidth: 9999);
-        actions_info.Initialize(action_info_list);
+        // actions_info = UIFactory.CreateScrollPool<StateActionCell>(state_page, "StateActions",
+        // out GameObject actions_ui_root, out GameObject actions_content);
+        // UIFactory.SetLayoutElement(actions_ui_root, flexibleHeight: 9999, flexibleWidth: 9999);
         state_page.SetActive(false);
+        action_page_data = StateActionPage.Create(state_page, this);
 
-        events_page = UIFactory.CreateVerticalGroup(info_details, "EventsPage", false, false, true, true, bgColor: Color.yellow, childAlignment: TextAnchor.UpperCenter);
+
+        events_page = UIFactory.CreateVerticalGroup(info_details, "EventsPage", false, false, true, true, bgColor: Color.clear, childAlignment: TextAnchor.UpperCenter);
         UIFactory.SetLayoutElement(events_page, flexibleHeight: 9999, flexibleWidth: 9999);
         events_page.SetActive(false);
+        events_page_data = EventsPage.Create(events_page, this);
 
-        variables_page = UIFactory.CreateVerticalGroup(info_details, "VariablesPage", false, false, true, true, bgColor: Color.red, childAlignment: TextAnchor.UpperCenter);
+        variables_page = UIFactory.CreateVerticalGroup(info_details, "VariablesPage", false, false, true, true, bgColor: Color.clear, childAlignment: TextAnchor.UpperCenter);
         UIFactory.SetLayoutElement(variables_page, flexibleHeight: 9999, flexibleWidth: 9999);
         variables_page.SetActive(false);
+        variables_page_data = VariablesPage.Create(variables_page, this);
+
+        operations_tab.OnClick += () => ChangeInfoPage("Operations");
 
         state_tab.OnClick += () => ChangeInfoPage("State");
 
@@ -257,11 +284,16 @@ public class FsmInspector : InspectorBase
 
     private void ChangeInfoPage(string page_name)
     {
+        bool is_operations = false;
         bool is_state = false;
         bool is_event = false;
         bool is_variables = false;
         switch (page_name)
         {
+            case "Operations":
+                info_page_state = page_name;
+                is_operations = true;
+                break;
             case "State":
                 info_page_state = page_name;
                 is_state = true;
@@ -277,6 +309,8 @@ public class FsmInspector : InspectorBase
             default:
                 return;
         }
+        operations_tab.Component.interactable = !is_operations;
+        operations_page.SetActive(is_operations);
         state_tab.Component.interactable = !is_state;
         state_page.SetActive(is_state);
         events_tab.Component.interactable = !is_event;
@@ -313,12 +347,14 @@ public class FsmInspector : InspectorBase
             switch (info_page_state)
             {
                 case "State":
-                    foreach (var state_action_cell in actions_info.CellPool)
-                    {
-                        if (!state_action_cell.Enabled || state_action_cell.Target == null)
-                            continue;
-                        state_action_cell.Update();
-                    }
+                    action_page_data.Update();
+                    break;
+                case "Events":
+                    events_page_data.Update();
+                    break;
+
+                case "Variables":
+                    variables_page_data.Update();
                     break;
                 default: break;
             }
@@ -421,13 +457,7 @@ public class FsmInspector : InspectorBase
 
     }
 
-    private void CreateNode(Vector2 pos, string name, List<string> events = null)
-    {
-        var node = Pool<FsmNode>.Borrow();
-        node.UIRoot.transform.SetParent(fsm_view_content.transform, false);
-        node.SetTarget(pos, name, events);
-        fsmNodes.Add(node);
-    }
+
     private void CreateNode(FsmState fsmState, bool is_begin_state = false)
     {
         var node = Pool<FsmNode>.Borrow();
@@ -436,6 +466,21 @@ public class FsmInspector : InspectorBase
         fsmNodes.Add(node);
         node_dicts.Add(fsmState.Name, node);
     }
+    private void CreateGlobalEvents(FsmTransition transition)
+    {
+        var ent = Pool<NodeEventCell>.Borrow();
+        ent.UIRoot.transform.SetParent(fsm_view_content.transform, false);
+        ent.SetTarget(transition.FsmEvent, true, transition.ToFsmState == null);
+        if (node_dicts.TryGetValue(transition.toFsmState.Name, out var node))
+        {
+            RectTransform transform = node.StateName.GameObject.transform as RectTransform;
+            var pos = GetCenterForFsmContent(transform.TransformPoint(transform.rect.center));
+            ent.Rect.anchoredPosition = pos - new Vector2(0, -50);
+            (node.Target.Name + " 的位置在" + pos + ",把对应的event放在" + ent.Rect.anchoredPosition).LogInfo();
+        }
+        global_events.Add(ent);
+        CreateLine(ent, node);
+    }
 
     public override void OnReturnToPool()
     {
@@ -443,22 +488,35 @@ public class FsmInspector : InspectorBase
         info_view_toggle.isOn = true;
         auto_refresh_toggle.isOn = false;
         base.OnReturnToPool();
+        inspectors.Remove(this);
 
     }
     public void ClearAll()
     {
-        foreach (var node in fsmNodes)
+        if (Selected_FsmState != null)
         {
-            node.OnReturnToPool();
+            Selected_FsmState.UnSelect();
         }
-        fsmNodes.Clear();
-        node_dicts.Clear();
         fsm_name_text.text = "notset";
         fsm_started.isOn = true;
         use_template.isOn = true;
         fsm_selected_state_name.text = "<color=grey>Selected: </color>null";
-
-
+        foreach (var line in lines)
+        {
+            line.OnReturnToPool();
+        }
+        foreach (var evt in global_events)
+        {
+            evt.OnReturnToPool();
+        }
+        foreach (var node in fsmNodes)
+        {
+            node.OnReturnToPool();
+        }
+        lines.Clear();
+        global_events.Clear();
+        fsmNodes.Clear();
+        node_dicts.Clear();
     }
 
     private void SetTarget(PlayMakerFSM target)
@@ -474,6 +532,26 @@ public class FsmInspector : InspectorBase
         {
             CreateNode(state, state.Name == begin_state_name);
         }
+        LayoutRebuilder.ForceRebuildLayoutImmediate(fsm_view_content.GetComponent<RectTransform>());
+        foreach (var transition in Target.FsmGlobalTransitions)
+        {
+            CreateGlobalEvents(transition);
+        }
+        foreach (var state in Target.FsmStates)
+        {
+            foreach (var transition in state.Transitions)
+            {
+                var fromnode = node_dicts[state.Name];
+                node_dicts.TryGetValue(transition.toState, out var tonode);
+                if (tonode == null) continue;
+                else
+                {
+                    CreateLine(fromnode.events_dict[transition.FsmEvent], tonode);
+                }
+            }
+        }
+        events_page_data.SetTarget(Target);
+        variables_page_data.SetTarget(Target.FsmVariables);
     }
     public void SelectState(FsmNode node)
     {
@@ -488,7 +566,78 @@ public class FsmInspector : InspectorBase
         node.Select();
         Selected_FsmState = node;
         fsm_selected_state_name.text = "<color=grey>Selected: </color>" + node.Target.Name;
-        action_info_list.SetTarget(node);
-        actions_info.Refresh(true, true);
+        action_page_data.SetTarget(node);
+    }
+
+    public Vector2 GetCenterForFsmContent(Vector2 world_pos)
+    {
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            fsm_view_content.GetComponent<RectTransform>(),
+            RectTransformUtility.WorldToScreenPoint(null, world_pos),
+            null,
+            out Vector2 local_pos
+        );
+        return local_pos;
+    }
+    public void CreateLine(NodeEventCell eventCell, FsmNode fsmNode)
+    {
+        Rect rect1 = eventCell.Rect.rect;
+        Rect rect2 = fsmNode.StateName.GameObject.GetComponent<RectTransform>().rect;
+
+        var center1 = GetCenterForFsmContent(eventCell.Rect.TransformPoint(rect1.center));
+        var center2 = GetCenterForFsmContent(fsmNode.StateName.GameObject.GetComponent<RectTransform>().TransformPoint(rect2.center));
+
+        rect1.center += center1;
+
+        rect2.center += center2;
+
+        // (fsmNode.Target.name + "的rect为" + rect2 + " 对应的event为" + rect1).LogInfo();
+
+        Vector2 start, end, start_middle, end_middle;
+        var line = LineRef.OnBorrowedFromPool(fsm_view_content);
+        if (!eventCell.InGlobalTransition)
+        {
+            start = ComputeLocation(rect1, rect2, out bool is_left_start);
+            end = ComputeLocation(rect2, rect1, out bool is_left_end);
+            var new_end_x = is_left_end ? end.x - 3 : end.x + 3;
+            float dist = is_left_start == is_left_end ? 50 : 40;
+            start_middle = new Vector2(start.x - (dist * (is_left_start ? 1 : -1)), start.y);
+            end_middle = new Vector2(end.x - (dist * (is_left_end ? 1 : -1)), end.y);
+            line.SetPath([start, start_middle, end_middle, end]);
+        }
+        else
+        {
+            start = new Vector2(rect1.center.x, rect1.yMin);
+            end = new Vector2(rect2.center.x, rect2.yMax);
+            line.SetPath([start, end]);
+        }
+        lines.Add(line);
+
+
+    }
+    static Vector2 ComputeLocation(Rect rect1, Rect rect2, out bool is_left)
+    {
+        var midx1 = rect1.center.x;
+        var midx2 = rect2.center.x;
+        var midy1 = rect1.center.y;
+        var midy2 = rect2.center.y;
+        var loc = rect1.center;
+
+        if (midx1 == midx2)
+        {
+            is_left = true;
+        }
+        else if (Mathf.Abs(midx1 - midx2) * 2 >= rect1.width + rect2.width || midy2 < midy1)
+        {
+            is_left = midx1 > midx2;
+        }
+        else
+        {
+            is_left = midx1 < midx2;
+        }
+        loc = is_left
+            ? new Vector2(rect1.xMin, midy1)
+            : new Vector2(rect1.xMax, midy1);
+        return loc;
     }
 }

@@ -11,7 +11,7 @@ using UniverseLib.UI.Models;
 using UniverseLib.UI.ObjectPool;
 using UniverseLib.UI.Widgets.ScrollView;
 
-public class FsmNode : IPooledObject, ICellPoolDataSource<NodeEventCell>
+public class FsmNode : IPooledObject
 {
     public GameObject UIRoot { get; set; }
     public float DefaultHeight => -1f;
@@ -23,11 +23,8 @@ public class FsmNode : IPooledObject, ICellPoolDataSource<NodeEventCell>
     public ButtonRef StateName { get; set; }
 
     public List<string> events_name = new();
+    public Dictionary<FsmEvent, NodeEventCell> events_dict = new();
 
-    public int ItemCount => events_name.Count;
-    public LayoutElement scroll_layout;
-    public ScrollPool<NodeEventCell> event_cells;
-    List<NodeEventCell> events = new();
     GameObject event_ui_root;
     public FsmState Target { get; set; }
     public FsmInspector owner;
@@ -78,48 +75,28 @@ public class FsmNode : IPooledObject, ICellPoolDataSource<NodeEventCell>
     {
 
     }
-    public void SetCell(NodeEventCell cell, int index)
-    {
-        if (index < 0 || index >= events_name.Count)
-        {
-            cell.Disable();
-            return;
-        }
-        cell.Enable();
-        cell.SetTarget(events_name[index]);
-    }
+
 
     public void ClearEvents()
     {
-        foreach (var evt in events)
+        foreach (var evt in events_dict.Values)
         {
-            Pool<NodeEventCell>.Return(evt);
+            evt.OnReturnToPool();
         }
-        events.Clear();
+        events_dict.Clear();
     }
     private void RefreshEvents()
     {
         ClearEvents();
-        if (Target == null)
+
+        foreach (var transition in Target.Transitions)
         {
-            foreach (var evt_name in events_name)
-            {
-                var evt = Pool<NodeEventCell>.Borrow();
-                evt.UIRoot.transform.SetParent(event_ui_root.transform, false);
-                evt.SetTarget(evt_name);
-                events.Add(evt);
-            }
+            var evt = Pool<NodeEventCell>.Borrow();
+            evt.UIRoot.transform.SetParent(event_ui_root.transform, false);
+            evt.SetTarget(transition.FsmEvent, false, transition.toFsmState == null);
+            events_dict.Add(transition.FsmEvent, evt);
         }
-        else
-        {
-            foreach (var transition in Target.Transitions)
-            {
-                var evt = Pool<NodeEventCell>.Borrow();
-                evt.UIRoot.transform.SetParent(event_ui_root.transform, false);
-                evt.SetTarget(transition.EventName);
-                events.Add(evt);
-            }
-        }
+
     }
     public void OnReturnToPool()
     {
@@ -159,21 +136,13 @@ public class FsmNode : IPooledObject, ICellPoolDataSource<NodeEventCell>
     {
         StateName.ButtonText.color = Color.white;
     }
-    public void SetTarget(Vector2 pos, string name, List<string> names = null)
-    {
-        RectTransform.anchoredPosition = pos;
-        StateName.ButtonText.text = name;
-        if (names != null)
-        {
-            events_name = names;
-        }
-        RefreshEvents();
-    }
+
     public void SetTarget(FsmInspector owner, FsmState fsmState, bool is_begin_state = false)
     {
         this.owner = owner;
         Vector2 pos = fsmState.position.center;
         RectTransform.anchoredPosition = new Vector2(pos.x, -pos.y);
+        UIFactory.SetLayoutElement(UIRoot, minWidth: (int)fsmState.position.width);
         StateName.ButtonText.text = fsmState.Name;
         Target = fsmState;
         RefreshEvents();
@@ -181,5 +150,7 @@ public class FsmNode : IPooledObject, ICellPoolDataSource<NodeEventCell>
         {
             IsBeginState();
         }
+        LayoutRebuilder.ForceRebuildLayoutImmediate(RectTransform);
+
     }
 }

@@ -7,9 +7,9 @@ using UniverseLib.Utility;
 
 public class NICacheProperty : CacheProperty
 {
-    public NICacheProperty(PropertyInfo fi, object target) : base(fi)
+    public NICacheProperty(PropertyInfo pi, object target) : base(pi)
     {
-        NameLabelText = "<color=" + SignatureHighlighter.keywordBlueHex + ">" + fi.Name + "</color>";
+        NameLabelText = "<color=" + SignatureHighlighter.keywordBlueHex + ">" + pi.Name + "</color>";
         NameForFiltering = SignatureHighlighter.RemoveHighlighting(NameLabelText);
         NameLabelTextRaw = NameForFiltering;
         Target = target;
