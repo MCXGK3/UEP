@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using BepInEx;
 using HutongGames.PlayMaker;
 using UEP;
 using UnityEngine;
@@ -64,7 +65,7 @@ public class FsmInspector : InspectorBase
     List<NodeEventCell> global_events = new List<NodeEventCell>();
     FsmNode Selected_FsmState { get; set; }
     Dictionary<string, FsmNode> node_dicts = new();
-    FsmNode Active_FsmState { get; set; }
+
     Toggle auto_refresh_toggle;
     public bool AutoRefresh => auto_refresh_toggle.isOn;
 
@@ -82,16 +83,14 @@ public class FsmInspector : InspectorBase
     Dictionary<FsmTransition, LineRef> transitions_to_lines = new();
     Dictionary<LineRef, FsmTransition> lines_to_transitions = new();
 
+    FsmNode Active_FsmState { get; set; }
+
     public LineRef SelectedLineRef { get; set; }
 
     public HashSet<FsmNode> MarkedNodes { get; set; } = new();
     public HashSet<LineRef> MarkedLines { get; set; } = new();
 
     public static List<FsmInspector> fsm_inspectors = new List<FsmInspector>();
-
-
-
-
 
     public FsmNode GetFsmNode(string state_name)
     {
@@ -374,6 +373,10 @@ public class FsmInspector : InspectorBase
                 default: break;
             }
         }
+        // if (Input.GetKeyDown(KeyCode.F10))
+        // {
+        //     FsmLayoutUtility.TestAddNewState(Target, "test state");
+        // }
     }
     Vector2 GetMousePositionInContent()
     {
@@ -478,9 +481,11 @@ public class FsmInspector : InspectorBase
         var node = Pool<FsmNode>.Borrow();
         node.UIRoot.transform.SetParent(fsm_view_content.transform, false);
         node.SetTarget(this, fsmState, is_begin_state);
+        FsmLayoutUtility.AutoPlaceNode(node, fsmNodes);
         fsmNodes.Add(node);
         node_dicts.Add(fsmState.Name, node);
     }
+
     private void CreateGlobalEvents(FsmTransition transition)
     {
         var ent = Pool<NodeEventCell>.Borrow();
@@ -576,11 +581,12 @@ public class FsmInspector : InspectorBase
             foreach (var transition in state.Transitions)
             {
                 var fromnode = node_dicts[state.Name];
+                if (transition.toState.IsNullOrWhiteSpace()) continue;
                 node_dicts.TryGetValue(transition.toState, out var tonode);
                 if (tonode == null) continue;
                 else
                 {
-                    CreateLine(fromnode.events_dict[transition.FsmEvent], tonode, transition);
+                    CreateLine(fromnode.events_dict[transition], tonode, transition);
                 }
             }
         }
@@ -750,8 +756,6 @@ public class FsmInspector : InspectorBase
     {
         line.Rect.SetSiblingIndex(lines.Count - 1);
     }
-
-
     static Vector2 ComputeLocation(Rect rect1, Rect rect2, out bool is_left)
     {
         var midx1 = rect1.center.x;
@@ -777,4 +781,6 @@ public class FsmInspector : InspectorBase
             : new Vector2(rect1.xMax, midy1);
         return loc;
     }
+
+
 }

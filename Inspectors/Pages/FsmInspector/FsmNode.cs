@@ -24,7 +24,7 @@ public class FsmNode : IPooledObject
     public ButtonRef StateName { get; set; }
 
     public List<string> events_name = new();
-    public Dictionary<FsmEvent, NodeEventCell> events_dict = new();
+    public Dictionary<FsmTransition, NodeEventCell> events_dict = new();
 
     GameObject event_ui_root;
     public FsmState Target { get; set; }
@@ -108,7 +108,7 @@ public class FsmNode : IPooledObject
             var evt = Pool<NodeEventCell>.Borrow();
             evt.UIRoot.transform.SetParent(event_ui_root.transform, false);
             evt.SetTarget(transition.FsmEvent, false, transition.toFsmState == null);
-            events_dict.Add(transition.FsmEvent, evt);
+            events_dict.Add(transition, evt);
         }
 
     }

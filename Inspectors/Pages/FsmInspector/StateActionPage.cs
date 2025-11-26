@@ -10,7 +10,7 @@ public class StateActionPage() : ICellPoolDataSource<StateActionCell>
     public FsmInspector Owner { get; set; }
     public GameObject UIRoot { get; set; }
     public ScrollPool<StateActionCell> cells;
-    public int ItemCount => Target == null || Target.Target == null ? 0 : Target.Target.actions.GetCount();
+    public int ItemCount => (Target == null || Target.Target == null || Target.Target.Actions == null) ? 0 : Target.Target.Actions.GetCount();
 
     public bool AutoRefresh => Target.owner.AutoRefresh;
 
