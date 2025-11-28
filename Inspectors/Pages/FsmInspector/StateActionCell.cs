@@ -26,8 +26,8 @@ public class StateActionCell : ICell
     public GameObject name_row;
     public Text action_name_text;
 
-    public List<CacheMemberCell> parameter_cells = new();
-    public List<CacheMember> parameters = new();
+    public List<CacheMemberCell> member_cells = new();
+    public List<CacheMember> members = new();
     public GameObject SubContentHolder { get; set; }
     public ButtonRef SubContentButton { get; set; }
     public readonly Color subInactiveColor = new(0.23f, 0.23f, 0.23f);
@@ -91,13 +91,13 @@ public class StateActionCell : ICell
     public void AddParameters()
     {
         ClearAll();
-        parameters = GetCacheMemberList();
-        for (int i = 0; i < parameters.Count; i++)
+        members = GetCacheMemberList();
+        for (int i = 0; i < members.Count; i++)
         {
             var cmc = Pool<CacheMemberCell>.Borrow();
             cmc.Rect.SetParent(SubContentHolder.GetComponent<RectTransform>(), false);
-            parameter_cells.Add(cmc);
-            CacheObjectControllerHelper.SetCell(cmc, i, parameters, null);
+            member_cells.Add(cmc);
+            CacheObjectControllerHelper.SetCell(cmc, i, members, null);
             cmc.Enable();
         }
     }
@@ -159,13 +159,13 @@ public class StateActionCell : ICell
 
     public void ClearAll()
     {
-        foreach (var cell in parameter_cells)
+        foreach (var cell in member_cells)
         {
             cell.Disable();
             Pool<CacheMemberCell>.Return(cell);
         }
-        parameter_cells.Clear();
-        parameters.Clear();
+        member_cells.Clear();
+        members.Clear();
     }
     public void Disable()
     {
@@ -182,7 +182,7 @@ public class StateActionCell : ICell
         if (SubContentHolder.activeSelf)
         {
             // "Update1".LogInfo();
-            foreach (var cell in parameter_cells)
+            foreach (var cell in member_cells)
             {
                 // (cell.Occupant.NameLabelTextRaw + " Update2 " + cell.Enabled).LogInfo();
                 if (!cell.Enabled || cell.Occupant == null)

@@ -5,7 +5,7 @@ using UniverseLib.UI;
 using UniverseLib.UI.ObjectPool;
 using UniverseLib.UI.Widgets.ScrollView;
 
-public class NodeEventCell : ICell
+public class TransitionCell : ICell
 {
     public GameObject UIRoot { get; set; }
 
@@ -16,10 +16,11 @@ public class NodeEventCell : ICell
     public bool Enabled => UIRoot.activeSelf;
 
     public RectTransform Rect { get; set; }
-    public readonly Color default_color = Color.black;
+    public Color default_color = Color.black;
 
-    public FsmEvent Target { get; set; }
+    public FsmTransition Target { get; set; }
     public bool InGlobalTransition { get; set; }
+    public int color_index;
     ContentSizeFitter contentSizeFitter;
 
     public GameObject CreateContent(GameObject parent)
@@ -40,7 +41,7 @@ public class NodeEventCell : ICell
     public void OnReturnToPool()
     {
         UIRoot.GetComponent<Image>().color = Color.clear;
-        Pool<NodeEventCell>.Return(this);
+        Pool<TransitionCell>.Return(this);
         Rect.anchorMin = new Vector2(0.5f, 0.5f);
         Rect.anchorMax = new Vector2(0.5f, 0.5f);
         Rect.pivot = new Vector2(0.5f, 0.5f);
@@ -57,16 +58,20 @@ public class NodeEventCell : ICell
         EventText.gameObject.SetActive(true);
     }
 
-    public void SetTarget(FsmEvent evt, bool in_global_transition = false, bool has_no_dest = false)
+    public void SetTarget(FsmTransition transition, bool in_global_transition = false, bool has_no_dest = false, int color_index = 0)
     {
-        Target = evt;
-        EventText.text = evt.Name;
+        Target = transition;
+        EventText.text = transition.FsmEvent.Name;
         InGlobalTransition = in_global_transition;
+        default_color = FsmLayoutUtility.GetColor(color_index);
+        // if (color_index == 0) { default_color = Color.black; }
+        this.color_index = color_index;
         UIRoot.GetComponent<Image>().color = in_global_transition ? Color.black : default_color;
-        contentSizeFitter.enabled = in_global_transition;
+        contentSizeFitter.enabled = false;
         if (has_no_dest)
         {
             UIRoot.GetComponent<Image>().color = new Color(1, 0, 1, 0.5f);
+            EventText.color = Color.black;
         }
     }
 }

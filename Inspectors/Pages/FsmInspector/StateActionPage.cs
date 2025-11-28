@@ -6,7 +6,7 @@ using UniverseLib.UI.Widgets.ScrollView;
 
 public class StateActionPage() : ICellPoolDataSource<StateActionCell>
 {
-    public FsmNode Target;
+    public StateNode Target;
     public FsmInspector Owner { get; set; }
     public GameObject UIRoot { get; set; }
     public ScrollPool<StateActionCell> cells;
@@ -18,7 +18,7 @@ public class StateActionPage() : ICellPoolDataSource<StateActionCell>
     {
 
     }
-    public void SetTarget(FsmNode target)
+    public void SetTarget(StateNode target)
     {
         this.Target = target;
         cells.Refresh(true, true);

@@ -8,7 +8,7 @@ using UnityExplorer;
 using UniverseLib;
 using UniverseLib.UI;
 using UniverseLib.UI.ObjectPool;
-public class UILine : MaskableGraphic
+public class GraphicLine : MaskableGraphic
 {
     public enum CurveType
     {
@@ -300,7 +300,7 @@ public class UILine : MaskableGraphic
 }
 
 
-public class Line : Selectable, IPointerClickHandler
+public class SelectableLine : Selectable, IPointerClickHandler
 {
     public Action OnLineClick;
     public Action OnLineSelect;
@@ -334,19 +334,17 @@ public class Line : Selectable, IPointerClickHandler
 
 public class LineRef : IPooledObject
 {
-    public Action OnClick;
-
     //
     // 摘要:
     //     The actual Button component this object is a reference to.
-    public Line Line { get; set; }
+    public SelectableLine SLine { get; set; }
 
-    public UILine UI_Line { get; set; }
+    public GraphicLine GLine { get; set; }
 
     //
     // 摘要:
     //     The RectTransform for this Button.
-    public RectTransform Rect => Line.transform.TryCast<RectTransform>();
+    public RectTransform Rect => SLine.transform.TryCast<RectTransform>();
     public static ColorBlock default_colors = new()
     {
         normalColor = new Color(0.2f, 0.2f, 0.2f),
@@ -356,38 +354,28 @@ public class LineRef : IPooledObject
         disabledColor = Color.white,
         colorMultiplier = 1f
     };
+    public Color CurrentNormalColor { get; set; } = default_colors.normalColor;
 
-    ColorBlock colors;
 
-    public ColorBlock Colors
-    {
-        get => colors;
-        set
-        {
-            colors = value;
-            RuntimeHelper.SetColorBlock(Line, colors);
-
-        }
-    }
 
     public bool Enabled => UIRoot.activeSelf;
 
     public void Select()
     {
-        Line.interactable = false;
-        
+        SLine.interactable = false;
+
     }
     public void UnSelect()
     {
-        Line.interactable = true;
+        SLine.interactable = true;
     }
     public void Mark()
     {
-        RuntimeHelper.SetColorBlock(Line, Color.cyan);
+        RuntimeHelper.SetColorBlock(SLine, Color.cyan);
     }
     public void UnMark()
     {
-        RuntimeHelper.SetColorBlock(Line, default_colors);
+        RuntimeHelper.SetColorBlock(SLine, CurrentNormalColor);
     }
 
 
@@ -402,57 +390,56 @@ public class LineRef : IPooledObject
         Navigation navigation = selectable.navigation;
         navigation.mode = Navigation.Mode.Explicit;
         selectable.navigation = navigation;
-        UniverseLib.RuntimeHelper.SetColorBlock(selectable, default_colors);
+        RuntimeHelper.SetColorBlock(selectable, default_colors);
     }
-    public void SetPath(List<Vector2> path, bool should_arrow = true, ColorBlock? block = null)
+    public void SetPath(List<Vector2> path, bool should_arrow = true, Color? normal_color = null)
     {
         int len = path.Count;
         if (len < 2 || len > 4) return;
         switch (len)
         {
             case 2:
-                UI_Line.curveType = UILine.CurveType.Line;
-                UI_Line.P0 = path[0];
-                UI_Line.P1 = path[1];
+                GLine.curveType = GraphicLine.CurveType.Line;
+                GLine.P0 = path[0];
+                GLine.P1 = path[1];
                 break;
             case 3:
-                UI_Line.curveType = UILine.CurveType.QuadraticBezier;
-                UI_Line.P0 = path[0];
-                UI_Line.P1 = path[1];
-                UI_Line.P2 = path[2];
+                GLine.curveType = GraphicLine.CurveType.QuadraticBezier;
+                GLine.P0 = path[0];
+                GLine.P1 = path[1];
+                GLine.P2 = path[2];
                 break;
             case 4:
-                UI_Line.curveType = UILine.CurveType.CubicBezier;
-                UI_Line.P0 = path[0];
-                UI_Line.P1 = path[1];
-                UI_Line.P2 = path[2];
-                UI_Line.P3 = path[3];
+                GLine.curveType = GraphicLine.CurveType.CubicBezier;
+                GLine.P0 = path[0];
+                GLine.P1 = path[1];
+                GLine.P2 = path[2];
+                GLine.P3 = path[3];
                 break;
             default:
                 break;
         }
-        if (block.HasValue)
+        if (normal_color.HasValue)
         {
-            Colors = block.Value;
+            CurrentNormalColor = normal_color.Value;
+            RuntimeHelper.SetColorBlock(SLine, CurrentNormalColor);
+            // GLine.color = CurrentNormalColor;
         }
-        UI_Line.Refresh();
+        GLine.Refresh();
     }
-    public static LineRef OnBorrowedFromPool(GameObject gameObject)
+    public static LineRef OnBorrowedFromPool(GameObject parent)
     {
         var line_ref = Pool<LineRef>.Borrow();
-        line_ref.Rect.SetParent(gameObject.GetComponent<RectTransform>(), false);
-        line_ref.Line.OnLineSelect += () =>
-        {
-            // InspectorManager.Inspect(line_ref);
-        };
+        line_ref.Rect.SetParent(parent.GetComponent<RectTransform>(), false);
         line_ref.Rect.SetAsFirstSibling();
         return line_ref;
 
     }
     public void OnReturnToPool()
     {
-        SetPath([Vector2.zero, Vector2.zero], false, default_colors);
-        Line.ClearAction();
+        SetPath([Vector2.zero, Vector2.zero], false, default_colors.normalColor);
+        RuntimeHelper.SetColorBlock(SLine, default_colors);
+        SLine.ClearAction();
         UnSelect();
         UnMark();
         Pool<LineRef>.Return(this);
@@ -461,10 +448,10 @@ public class LineRef : IPooledObject
     public GameObject CreateContent(GameObject parent)
     {
         UIRoot = UIFactory.CreateUIObject("Line", parent);
-        UI_Line = UIRoot.AddComponent<UILine>();
-        Line = UIRoot.AddComponent<Line>();
-        SetDefaultSelectableValues(Line);
-        SetPath([Vector2.zero, Vector2.zero], block: default_colors);
+        GLine = UIRoot.AddComponent<GraphicLine>();
+        SLine = UIRoot.AddComponent<SelectableLine>();
+        SetDefaultSelectableValues(SLine);
+        SetPath([Vector2.zero, Vector2.zero]);
         return UIRoot;
 
     }

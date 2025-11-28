@@ -12,7 +12,7 @@ using UniverseLib.UI.Models;
 using UniverseLib.UI.ObjectPool;
 using UniverseLib.UI.Widgets.ScrollView;
 
-public class FsmNode : IPooledObject
+public class StateNode : IPooledObject
 {
     public GameObject UIRoot { get; set; }
     public float DefaultHeight => -1f;
@@ -23,10 +23,8 @@ public class FsmNode : IPooledObject
 
     public ButtonRef StateName { get; set; }
 
-    public List<string> events_name = new();
-    public Dictionary<FsmTransition, NodeEventCell> events_dict = new();
-
-    GameObject event_ui_root;
+    public List<TransitionCell> transitions = new();
+    GameObject transition_ui_root;
     public FsmState Target { get; set; }
     public FsmInspector owner;
     public ColorBlock default_color;
@@ -51,6 +49,7 @@ public class FsmNode : IPooledObject
             highlightedColor = Color.yellow,
             normalColor = Color.grey,
             disabledColor = Color.blue,
+            selectedColor = Color.grey
         };
         StateName = UIFactory.CreateButton(content, "StateName", "StateName", state_colors);
         default_color = StateName.Component.colors;
@@ -62,19 +61,19 @@ public class FsmNode : IPooledObject
         StateName.ButtonText.gameObject.AddComponent<ContentSizeFitter>().horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
         StateName.OnClick += OnClickNode;
         // UIFactory.SetLayoutElement(state_name.ButtonText.gameObject, minWidth: 80, minHeight: 20, flexibleHeight: 0, flexibleWidth: 0);
-        event_ui_root = UIFactory.CreateVerticalGroup(UIRoot, "StateEvents", false, false, true, true, 1, bgColor: new Color(1, 1, 1, 0.5f), childAlignment: TextAnchor.UpperCenter);
-        UIFactory.SetLayoutElement(event_ui_root, minWidth: 100);
-        event_ui_root.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        transition_ui_root = UIFactory.CreateVerticalGroup(UIRoot, "StateEvents", false, false, true, true, 1, bgColor: new Color(1, 1, 1, 0.5f), childAlignment: TextAnchor.UpperCenter);
+        UIFactory.SetLayoutElement(transition_ui_root, minWidth: 100);
+        transition_ui_root.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         // event_cells = UIFactory.CreateScrollPool<NodeEventCell>(UIRoot, "StateEvents", out GameObject event_ui_root, out GameObject event_content, bgColor: Color.yellow);
         // scroll_layout = event_ui_root.GetComponent<LayoutElement>();
         // var sr = event_ui_root.GetComponent<ScrollRect>();
         // sr.scrollSensitivity = 0;
-        UIFactory.SetLayoutElement(event_ui_root, minHeight: 0, minWidth: 100, flexibleWidth: 9999);
+        UIFactory.SetLayoutElement(transition_ui_root, minHeight: 0, minWidth: 100, flexibleWidth: 9999);
 
         return UIRoot;
     }
 
-    public void OnCellBorrowed(NodeEventCell cell)
+    public void OnCellBorrowed(TransitionCell cell)
     {
 
     }
@@ -93,11 +92,11 @@ public class FsmNode : IPooledObject
 
     public void ClearEvents()
     {
-        foreach (var evt in events_dict.Values)
+        foreach (var evt in transitions)
         {
             evt.OnReturnToPool();
         }
-        events_dict.Clear();
+        transitions.Clear();
     }
     private void RefreshEvents()
     {
@@ -105,10 +104,10 @@ public class FsmNode : IPooledObject
 
         foreach (var transition in Target.Transitions)
         {
-            var evt = Pool<NodeEventCell>.Borrow();
-            evt.UIRoot.transform.SetParent(event_ui_root.transform, false);
-            evt.SetTarget(transition.FsmEvent, false, transition.toFsmState == null);
-            events_dict.Add(transition, evt);
+            var evt = Pool<TransitionCell>.Borrow();
+            evt.UIRoot.transform.SetParent(transition_ui_root.transform, false);
+            evt.SetTarget(transition, false, transition.toFsmState == null, Target.ColorIndex);
+            transitions.Add(evt);
         }
 
     }
@@ -121,7 +120,7 @@ public class FsmNode : IPooledObject
         ClearEvents();
         Target = null;
         this.owner = null;
-        Pool<FsmNode>.Return(this);
+        Pool<StateNode>.Return(this);
     }
     public void OnClickNode()
     {

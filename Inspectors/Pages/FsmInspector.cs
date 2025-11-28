@@ -24,75 +24,61 @@ public class FsmInspector : InspectorBase
 {
     public new PlayMakerFSM Target => (PlayMakerFSM)base.Target;
 
-    public GameObject content;
-
-    public GameObjectControls controls;
-
-    public TransformTree transformTree;
-
     Text fsm_name_text;
     InputFieldRef hidden_name_text;
-    Toggle fsm_started;
-    Toggle use_template;
+    Toggle fsm_started_toggle;
+    Toggle use_template_toggle;
+    Text fsm_view_pos;
+    Text fsm_active_state_name;
+    Text fsm_selected_state_name;
+
+
+    Toggle info_view_toggle;
+    GameObject info_view;
     string tab_button_text;
     string info_page_state;
     ButtonRef state_tab;
     GameObject state_page;
+    StateActionPage action_page_data;
     ButtonRef events_tab;
     GameObject events_page;
+    EventsPage events_page_data;
     ButtonRef variables_tab;
     GameObject variables_page;
-
+    VariablesPage variables_page_data;
     ButtonRef operations_tab;
     GameObject operations_page;
+    OperationsPage operation_page_data;
+    Toggle auto_refresh_toggle;
+    public bool AutoRefresh => auto_refresh_toggle.isOn;
 
     GameObject fsm_view_content;
     GameObject fsm_view;
-
-    Text fsm_view_pos;
-    Text fsm_active_state_name;
-    Text fsm_selected_state_name;
 
     const float min_fsm_view_scale = 0.2f;
     const float max_fsm_view_scale = 3f;
 
     public float scaleSpeed = 0.1f;
-    public float scaleLerpSpeed = 8f;
-    Vector3 current_fsm_view_scale => fsm_view_content.transform.localScale;
+    Vector3 Current_Fsm_View_Scale => fsm_view_content.transform.localScale;
 
-    List<FsmNode> fsmNodes = new List<FsmNode>();
+    List<StateNode> fsmNodes = new List<StateNode>();
+    Dictionary<string, StateNode> node_dicts = new();
+    Dictionary<string, (GameObject, List<TransitionCell>)> global_transition_groups = new();
 
-    List<NodeEventCell> global_events = new List<NodeEventCell>();
-    FsmNode Selected_FsmState { get; set; }
-    Dictionary<string, FsmNode> node_dicts = new();
-
-    Toggle auto_refresh_toggle;
-    public bool AutoRefresh => auto_refresh_toggle.isOn;
-
-    Toggle info_view_toggle;
-
-    GameObject info_view;
-
-    EventsPage events_page_data;
-    VariablesPage variables_page_data;
-    StateActionPage action_page_data;
-    OperationsPage operation_page_data;
-
+    StateNode Selected_FsmState { get; set; }
+    StateNode Active_FsmState { get; set; }
+    public HashSet<StateNode> MarkedNodes { get; set; } = new();
+    LineRef SelectedLineRef { get; set; }
     List<LineRef> lines = new();
-
     Dictionary<FsmTransition, LineRef> transitions_to_lines = new();
     Dictionary<LineRef, FsmTransition> lines_to_transitions = new();
-
-    FsmNode Active_FsmState { get; set; }
-
-    public LineRef SelectedLineRef { get; set; }
-
-    public HashSet<FsmNode> MarkedNodes { get; set; } = new();
     public HashSet<LineRef> MarkedLines { get; set; } = new();
+    public System.Random rng;
+    public List<RectTransform> fsm_view_rects = new();
 
     public static List<FsmInspector> fsm_inspectors = new List<FsmInspector>();
 
-    public FsmNode GetFsmNode(string state_name)
+    public StateNode GetFsmNode(string state_name)
     {
         return node_dicts.GetValueOrDefault(state_name, null);
     }
@@ -106,6 +92,16 @@ public class FsmInspector : InspectorBase
     private IEnumerator InitCoroutine()
     {
         yield return null;
+        CreateFsmLines();
+        yield return null;
+        if (!Target.Fsm.startState.IsNullOrWhiteSpace() && GetFsmNode(Target.Fsm.startState) != null)
+        {
+            SetPointToViewCenter(GetFsmNode(Target.Fsm.startState).RectTransform.anchoredPosition);
+        }
+        else
+        {
+            SetPointToViewCenter(Vector2.zero);
+        }
         LayoutRebuilder.ForceRebuildLayoutImmediate(InspectorPanel.Instance.ContentRect);
     }
     public override void CloseInspector()
@@ -161,13 +157,13 @@ public class FsmInspector : InspectorBase
         GameObject state_row = UIFactory.CreateHorizontalGroup(UIRoot, "state_row", false, false, true, true, 5, default, new(0.05f, 0.05f, 0.05f, 1), childAlignment: TextAnchor.MiddleLeft);
         UIFactory.SetLayoutElement(state_row, minHeight: 25, flexibleHeight: 0, flexibleWidth: 9999);
 
-        var started = UIFactory.CreateToggle(state_row, "started", out fsm_started, out Text text);
-        fsm_started.interactable = false;
+        var started = UIFactory.CreateToggle(state_row, "started", out fsm_started_toggle, out Text text);
+        fsm_started_toggle.interactable = false;
         text.text = "Started";
         UIFactory.SetLayoutElement(started, minWidth: 100, flexibleWidth: 0);
 
-        var useTemplate = UIFactory.CreateToggle(state_row, "usesTemplate", out use_template, out text);
-        use_template.interactable = false;
+        var useTemplate = UIFactory.CreateToggle(state_row, "usesTemplate", out use_template_toggle, out text);
+        use_template_toggle.interactable = false;
         text.text = "UsesTemplate";
         UIFactory.SetLayoutElement(useTemplate, minWidth: 100, flexibleWidth: 0);
 
@@ -178,7 +174,8 @@ public class FsmInspector : InspectorBase
         UIFactory.SetLayoutElement(fsm_view_pos_reset.GameObject, minWidth: 100, minHeight: 25, flexibleWidth: 0);
         fsm_view_pos_reset.OnClick = () =>
         {
-            fsm_view_content.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 0);
+            SetPointToViewCenter(Vector2.zero);
+            // fsm_view_content.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 0);
         };
 
         fsm_active_state_name = UIFactory.CreateLabel(state_row, "FsmActiveStateName", "not set", TextAnchor.MiddleCenter);
@@ -189,10 +186,11 @@ public class FsmInspector : InspectorBase
         {
             if (Target.ActiveStateName != null)
             {
-                node_dicts.TryGetValue(Target.ActiveStateName, out FsmNode node);
+                node_dicts.TryGetValue(Target.ActiveStateName, out StateNode node);
                 if (node != null)
                 {
-                    fsm_view_content.GetComponent<RectTransform>().anchoredPosition = -node.RectTransform.anchoredPosition;
+                    SetPointToViewCenter(node.RectTransform.anchoredPosition);
+                    // fsm_view_content.GetComponent<RectTransform>().anchoredPosition = -node.RectTransform.anchoredPosition;
                 }
             }
 
@@ -208,7 +206,8 @@ public class FsmInspector : InspectorBase
         {
             if (Selected_FsmState != null)
             {
-                fsm_view_content.GetComponent<RectTransform>().anchoredPosition = -Selected_FsmState.RectTransform.anchoredPosition;
+                SetPointToViewCenter(Selected_FsmState.RectTransform.anchoredPosition);
+                // fsm_view_content.GetComponent<RectTransform>().anchoredPosition = -Selected_FsmState.RectTransform.anchoredPosition;
             }
 
         };
@@ -347,7 +346,7 @@ public class FsmInspector : InspectorBase
         }
         fsm_view_pos.text = "<color=grey>View Pos: </color>" + (-fsm_view_content.GetComponent<RectTransform>().anchoredPosition).ToString("F6");
         fsm_active_state_name.text = "<color=grey>Active: </color>" + Target.ActiveStateName;
-        if (Target.ActiveStateName != null && node_dicts.TryGetValue(Target.ActiveStateName, out FsmNode node))
+        if (Target.ActiveStateName != null && node_dicts.TryGetValue(Target.ActiveStateName, out StateNode node))
         {
             if (node != Active_FsmState)
             {
@@ -373,52 +372,57 @@ public class FsmInspector : InspectorBase
                 default: break;
             }
         }
-        // if (Input.GetKeyDown(KeyCode.F10))
-        // {
-        //     FsmLayoutUtility.TestAddNewState(Target, "test state");
-        // }
+        if (Input.GetKeyDown(KeyCode.F10))
+        {
+            FsmLayoutUtility.TestAddNewState(Target, "test state" + UnityEngine.Random.Range(-1f, 1f), 1);
+        }
     }
     Vector2 GetMousePositionInContent()
     {
-        var viewport = fsm_view.GetComponent<ScrollRect>().viewport;
+        RectTransform content = fsm_view_content.transform as RectTransform;
+        RectTransform view = fsm_view_content.transform.parent as RectTransform;
         Vector2 localPoint;
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(viewport, Input.mousePosition, null, out localPoint);
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            view,
+            Input.mousePosition,
+            null,
+            out localPoint
+        );
         return localPoint;
     }
     public void ZoomAtPoint(float scaleDelta, Vector2 zoomCenter)
     {
-        var viewport = fsm_view.GetComponent<ScrollRect>().viewport;
-        float targetScale = current_fsm_view_scale.x;
-        // 计算新的缩放比例
-        float newScale = targetScale + scaleDelta;
-        newScale = Mathf.Clamp(newScale, min_fsm_view_scale, max_fsm_view_scale);
+        RectTransform content = fsm_view_content.transform as RectTransform;
 
-        // 如果缩放比例没有变化，直接返回
-        if (Mathf.Approximately(newScale, targetScale))
+        float oldScale = Current_Fsm_View_Scale.x;
+        float newScale = Mathf.Clamp(oldScale + scaleDelta, min_fsm_view_scale, max_fsm_view_scale);
+
+        if (Mathf.Approximately(oldScale, newScale))
             return;
-
-        // 计算缩放中心在content局部空间中的位置
-        Vector2 contentPivot = fsm_view_content.GetComponent<RectTransform>().pivot;
-        Vector2 viewportCenter = viewport.rect.center;
         Vector2 localZoomCenter = zoomCenter;
 
         // 计算缩放前后的位置变化
-        Vector2 contentPosBefore = fsm_view_content.transform.localPosition;
-        float scaleRatio = newScale / targetScale;
+        float scaleRatio = newScale / oldScale;
 
-        // 应用新的缩放比例
-        targetScale = newScale;
 
         // 计算新的内容位置，保持缩放中心不变
-        Vector2 offset = localZoomCenter - (Vector2)fsm_view_content.transform.localPosition;
+        Vector2 offset = localZoomCenter - (Vector2)content.localPosition;
         Vector2 contentPosAfter = localZoomCenter - offset * scaleRatio;
 
-        fsm_view_content.transform.localPosition = contentPosAfter;
-        fsm_view_content.transform.localScale = Vector3.one * targetScale;
-
-
+        content.localPosition = contentPosAfter;
+        content.transform.localScale = Vector3.one * newScale;
+        // LayoutRebuilder.ForceRebuildLayoutImmediate(fsm_view.transform as RectTransform);
+        // (newScale + " " + content.anchoredPosition + " " + content.localPosition).LogInfo();
     }
+    private void SetPointToViewCenter(Vector2 pos)
+    {
+        RectTransform contentRT = fsm_view_content.transform as RectTransform;
+        RectTransform viewportRT = fsm_view_content.transform.parent as RectTransform;
+        contentRT.anchoredPosition = pos * (-Current_Fsm_View_Scale);
+        LayoutRebuilder.ForceRebuildLayoutImmediate(fsm_view.transform as RectTransform);
 
+        return;
+    }
 
     private void HandleZoomInput(Vector2 scroll_data)
     {
@@ -461,13 +465,17 @@ public class FsmInspector : InspectorBase
             size_fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
             size_fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         }
+        RectTransform view_rt = scroll_rect.viewport.GetComponent<RectTransform>();
+        // view_rt.anchorMin = new Vector2(0.5f, 0.5f);
+        // view_rt.anchorMax = new Vector2(0.5f, 0.5f);
+        // view_rt.pivot = new Vector2(0.5f, 0.5f);
 
         RectTransform content_rt = content.GetComponent<RectTransform>();
         content_rt.anchorMin = new Vector2(0.5f, 0.5f);
         content_rt.anchorMax = new Vector2(0.5f, 0.5f);
         content_rt.pivot = new Vector2(0.5f, 0.5f);
 
-        UIFactory.SetLayoutElement(content, preferredHeight: 500, preferredWidth: 500);
+        UIFactory.SetLayoutElement(content);
 
 
 
@@ -478,34 +486,53 @@ public class FsmInspector : InspectorBase
 
     private void CreateNode(FsmState fsmState, bool is_begin_state = false)
     {
-        var node = Pool<FsmNode>.Borrow();
+        var node = Pool<StateNode>.Borrow();
         node.UIRoot.transform.SetParent(fsm_view_content.transform, false);
         node.SetTarget(this, fsmState, is_begin_state);
-        FsmLayoutUtility.AutoPlaceNode(node, fsmNodes);
+        FsmLayoutUtility.AutoPlaceNode(node.RectTransform, "FsmState:" + fsmState.Name, fsm_view_rects, rng);
+        fsm_view_rects.Add(node.RectTransform);
         fsmNodes.Add(node);
         node_dicts.Add(fsmState.Name, node);
+
     }
 
     private void CreateGlobalEvents(FsmTransition transition)
     {
-        var ent = Pool<NodeEventCell>.Borrow();
-        ent.UIRoot.transform.SetParent(fsm_view_content.transform, false);
-        ent.SetTarget(transition.FsmEvent, true, transition.ToFsmState == null);
+        var ent = Pool<TransitionCell>.Borrow();
+
         if (node_dicts.TryGetValue(transition.toFsmState.Name, out var node))
         {
-            RectTransform transform = node.StateName.GameObject.transform as RectTransform;
-            var pos = GetCenterForFsmContent(transform.TransformPoint(transform.rect.center));
-            ent.Rect.anchoredPosition = pos - new Vector2(0, -50);
+            GameObject global_event_parent;
+            if (global_transition_groups.TryGetValue(transition.toFsmState.Name, out var global_event_group))
+            {
+                global_event_parent = global_event_group.Item1;
+            }
+            else
+            {
+                global_event_parent = UIFactory.CreateVerticalGroup(fsm_view_content, "GlobalEventGroup", false, false, true, true, spacing: 1, bgColor: Color.white);
+                var csf = global_event_parent.AddComponent<ContentSizeFitter>();
+                csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+                csf.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+                global_event_group = (global_event_parent, new());
+                global_transition_groups.Add(transition.toFsmState.Name, global_event_group);
+            }
+            ent.UIRoot.transform.SetParent(global_event_parent.transform, false);
+            ent.SetTarget(transition, true, transition.ToFsmState == null);
+            global_event_group.Item2.Add(ent);
+            // RectTransform transform = node.StateName.GameObject.transform as RectTransform;
+            // var pos = GetCenterForFsmContent(transform.TransformPoint(transform.rect.center));
+            // ent.Rect.anchoredPosition = pos - new Vector2(0, -50);
             // (node.Target.Name + " 的位置在" + pos + ",把对应的event放在" + ent.Rect.anchoredPosition).LogInfo();
         }
-        global_events.Add(ent);
-        CreateLine(ent, node, transition);
+        // global_events.Add(ent);
+        // CreateLine(ent, node);
     }
 
     public override void OnReturnToPool()
     {
 
         ClearAll();
+        SetPointToViewCenter(Vector2.zero);
         info_view_toggle.isOn = true;
         auto_refresh_toggle.isOn = false;
         base.OnReturnToPool();
@@ -529,16 +556,20 @@ public class FsmInspector : InspectorBase
         }
         ClearAllMarks();
         fsm_name_text.text = "notset";
-        fsm_started.isOn = true;
-        use_template.isOn = true;
+        fsm_started_toggle.isOn = true;
+        use_template_toggle.isOn = true;
         fsm_selected_state_name.text = "<color=grey>Selected: </color>null";
         foreach (var line in lines)
         {
             line.OnReturnToPool();
         }
-        foreach (var evt in global_events)
+        foreach (var global_event_group in global_transition_groups.Values)
         {
-            evt.OnReturnToPool();
+            foreach (var evt in global_event_group.Item2)
+            {
+                evt.OnReturnToPool();
+            }
+            GameObject.DestroyImmediate(global_event_group.Item1);
         }
         foreach (var node in fsmNodes)
         {
@@ -547,9 +578,10 @@ public class FsmInspector : InspectorBase
         lines.Clear();
         lines_to_transitions.Clear();
         transitions_to_lines.Clear();
-        global_events.Clear();
+        global_transition_groups.Clear();
         fsmNodes.Clear();
         node_dicts.Clear();
+        fsm_view_rects.Clear();
         operation_page_data.ClearAll();
         action_page_data.ClearAll();
         events_page_data.ClearAll();
@@ -560,12 +592,13 @@ public class FsmInspector : InspectorBase
 
     private void SetTarget(PlayMakerFSM target)
     {
+        rng = new System.Random((target.name + target.FsmName).GetHashCode());
         tab_button_text = "<color=yellow>" + target.FsmName + "</color>" + "<color=white>(</color>" + "<color=green>" + target.name + "</color>" + "<color=white>)</color>";
         Tab.TabText.text = tab_button_text;
         fsm_name_text.text = "<color=grey>FSM Name: </color>" + "<color=yellow>" + target.FsmName + "</color>";
         hidden_name_text.Text = SignatureHighlighter.RemoveHighlighting(fsm_name_text.text);
-        fsm_started.isOn = target.fsm.Started;
-        use_template.isOn = target.UsesTemplate;
+        fsm_started_toggle.isOn = target.fsm.Started;
+        use_template_toggle.isOn = target.UsesTemplate;
         string begin_state_name = Target.fsm.startState;
         foreach (var state in Target.FsmStates)
         {
@@ -575,6 +608,22 @@ public class FsmInspector : InspectorBase
         foreach (var transition in Target.FsmGlobalTransitions)
         {
             CreateGlobalEvents(transition);
+        }
+        events_page_data.SetTarget(Target);
+        variables_page_data.SetTarget(Target.FsmVariables);
+        operation_page_data.Refresh();
+        fsm_view_content.transform.localScale = Vector3.one;
+    }
+    private void CreateFsmLines()
+    {
+        foreach (var global_event_group in global_transition_groups)
+        {
+            var node = GetFsmNode(global_event_group.Key);
+            (global_event_group.Value.Item1.transform as RectTransform).anchoredPosition = node.RectTransform.anchoredPosition + new Vector2(0, 50 + 8f * (global_event_group.Value.Item2.Count + node.transitions.Count - 1));
+            FsmLayoutUtility.AutoPlaceNode(global_event_group.Value.Item1.transform as RectTransform, "Global Event Group For " + global_event_group.Key, fsm_view_rects, rng);
+            fsm_view_rects.Add(global_event_group.Value.Item1.transform as RectTransform);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(global_event_group.Value.Item1.transform as RectTransform);
+            CreateLine(global_event_group.Value.Item2.Last(), GetFsmNode(global_event_group.Key));
         }
         foreach (var state in Target.FsmStates)
         {
@@ -586,19 +635,16 @@ public class FsmInspector : InspectorBase
                 if (tonode == null) continue;
                 else
                 {
-                    CreateLine(fromnode.events_dict[transition], tonode, transition);
+                    CreateLine(fromnode.transitions.Find((cell) => cell.Target == transition), tonode);
                 }
             }
         }
-        events_page_data.SetTarget(Target);
-        variables_page_data.SetTarget(Target.FsmVariables);
-        operation_page_data.Refresh();
     }
     public void SelectState(string state_name)
     {
         SelectState(GetFsmNode(state_name));
     }
-    public void SelectState(FsmNode node)
+    public void SelectState(StateNode node)
     {
         if (node == null)
         {
@@ -618,7 +664,7 @@ public class FsmInspector : InspectorBase
     {
         MarkState(GetFsmNode(state_name));
     }
-    public void MarkState(FsmNode node)
+    public void MarkState(StateNode node)
     {
         if (node == null)
         {
@@ -709,7 +755,7 @@ public class FsmInspector : InspectorBase
         );
         return local_pos;
     }
-    public void CreateLine(NodeEventCell eventCell, FsmNode fsmNode, FsmTransition transition)
+    public void CreateLine(TransitionCell eventCell, StateNode fsmNode)
     {
         if (fsmNode == null) return;
         Rect rect1 = eventCell.Rect.rect;
@@ -734,7 +780,7 @@ public class FsmInspector : InspectorBase
             float dist = is_left_start == is_left_end ? 50 : 40;
             start_middle = new Vector2(start.x - (dist * (is_left_start ? 1 : -1)), start.y);
             end_middle = new Vector2(end.x - (dist * (is_left_end ? 1 : -1)), end.y);
-            line.SetPath([start, start_middle, end_middle, end]);
+            line.SetPath([start, start_middle, end_middle, end], normal_color: FsmLayoutUtility.GetColor(eventCell.Target.ColorIndex));
         }
         else
         {
@@ -743,9 +789,9 @@ public class FsmInspector : InspectorBase
             line.SetPath([start, end]);
         }
         lines.Add(line);
-        lines_to_transitions.Add(line, transition);
-        transitions_to_lines.Add(transition, line);
-        line.Line.OnLineClick += () =>
+        lines_to_transitions.Add(line, eventCell.Target);
+        transitions_to_lines.Add(eventCell.Target, line);
+        line.SLine.OnLineClick += () =>
         {
             SelectLine(line);
         };
