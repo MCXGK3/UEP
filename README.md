@@ -20,6 +20,6 @@ This mod should be used with [UnityExplorer](https://github.com/sinai-dev/UnityE
 * When you inspect a PlayMakerFSM, a button labeled "Open Fsm Inspector" will appear in the upper-right corner. Click it to open the viewer.
 * The State, Event, and Variables pages function identically to their counterparts in FSMExpress.
 * The Operations page displays the currently selected State and Transition. With "Recording" enabled, it can also log the FSM's transition process.
-* Occasionally, connection lines may appear in incorrect positions. Reopening the viewer typically resolves this issue. If you know how to fix it permanently, feel free to raise a Pull Request.!
+* Occasionally, connection lines may appear in incorrect positions. Reopening the viewer typically resolves this issue. If you know how to fix it permanently, feel free to raise a Pull Request.
 
 ![example](./example.png)
