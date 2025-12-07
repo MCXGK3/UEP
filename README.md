@@ -4,6 +4,8 @@ There is a useful mod called UnityExplorerPlus (find it [there](https://github.c
 
 Additionally, I also referenced [FSMExpress](https://github.com/nesrak1/FSMExpress) to implement an in-game FSM viewer in this mod, which can help you know exactly how the FSM runs.
 
+This mod should be used with [UnityExplorer](https://github.com/sinai-dev/UnityExplorer).
+
 ## Implemented features
 
 - Show Fsm Info in the list view.
