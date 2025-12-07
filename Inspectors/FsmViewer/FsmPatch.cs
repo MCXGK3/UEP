@@ -13,6 +13,11 @@ using UniverseLib.UI;
 using UniverseLib.UI.ObjectPool;
 using UniverseLib.Utility;
 
+[HarmonyPatch]
+public class AddFsmInspector
+{
+
+}
 // [HarmonyPatch(typeof(InspectorManager), "Inspect", [typeof(object), typeof(CacheObjectBase)])]
 public class Patch_InspectorManager_Inspect
 {

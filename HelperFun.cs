@@ -10,4 +10,8 @@ public static class HelperFun
     {
         UEPPlugin.logger.LogWarning(msg);
     }
+    public static void LogError(this object msg)
+    {
+        UEPPlugin.logger.LogError(msg);
+    }
 }

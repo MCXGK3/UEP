@@ -47,7 +47,8 @@ public partial class UEPPlugin : BaseUnityPlugin
         InitPanel();
         AddInspector("Collider2Ds", new Collider2DsInspector());
         AddInspector("Enemy", new EnemyInspector());
-        AddInspector("World Position", new WorldPositionPin());
+        AddInspector("WorldPosition", new WorldPositionPin());
+        AddInspector("Renderer", new RendererInspector());
         // harmony.PatchAll(typeof(Patch_MouseInspector_OnDropdownSelect));
         // harmony.PatchAll(typeof(Patch_MouseInspector_CurrentInspector));
         FsmUtils.Init();
