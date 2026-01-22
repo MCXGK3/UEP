@@ -47,7 +47,7 @@ namespace UnityExplorerPlus
 		}
 
 		// Token: 0x06000052 RID: 82 RVA: 0x0000379C File Offset: 0x0000199C
-		protected override void ConstructPanelContent()
+		public override void ConstructPanelContent()
 		{
 			Transform title = UIRoot.transform.Find("Content").Find("TitleBar");
 			// Transform title = GameObjectHelper.FindChildWithPath(this.UIRoot, new string[]

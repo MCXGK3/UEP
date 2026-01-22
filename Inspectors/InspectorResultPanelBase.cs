@@ -184,7 +184,7 @@ namespace UnityExplorerPlus.Inspectors
 		}
 
 		// Token: 0x0600018A RID: 394 RVA: 0x0000A094 File Offset: 0x00008294
-		protected override void ConstructPanelContent()
+		public override void ConstructPanelContent()
 		{
 			this.dataHandler = new ButtonListHandler<GameObject, ButtonCell>(this.buttonScrollPool, new Func<List<GameObject>>(this.GetEntries), new Action<ButtonCell, int>(this.SetCell), new Func<GameObject, string, bool>(this.ShouldDisplayCell), new Action<int>(this.OnCellClicked));
 			GameObject gameObject;

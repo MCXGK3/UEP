@@ -15,7 +15,7 @@
     </RestoreAdditionalProjectSources>
       <!--Allow access of private members at runtime.-->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <ForCUE>true</ForCUE>
+    <ForCUE>false</ForCUE>
 
   </PropertyGroup>
 
