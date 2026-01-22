@@ -17,7 +17,7 @@ public class NICacheField : CacheField
     public new object DeclaringInstance => IsStatic ? null : Target.TryCast(DeclaringType);
 
 
-    protected override object TryEvaluate()
+    public override object TryEvaluate()
     {
         try
         {
@@ -31,7 +31,7 @@ public class NICacheField : CacheField
             return null;
         }
     }
-    protected override void TrySetValue(object value)
+    public override void TrySetValue(object value)
     {
         try
         {

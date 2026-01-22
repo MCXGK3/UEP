@@ -93,7 +93,7 @@ public class GraphicLine : MaskableGraphic
     private bool should_autoresize = false;
     private List<Vector2> last_points = new();
 
-    protected override void OnPopulateMesh(VertexHelper vh)
+    public override void OnPopulateMesh(VertexHelper vh)
     {
         vh.Clear();
 

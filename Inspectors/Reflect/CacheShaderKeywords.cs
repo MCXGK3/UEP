@@ -74,7 +74,7 @@ namespace UnityExplorerPlus.Inspectors.Reflect
 		}
 
 		// Token: 0x060001B4 RID: 436 RVA: 0x0000AD00 File Offset: 0x00008F00
-		protected override object TryEvaluate()
+		public override object TryEvaluate()
 		{
 			Material mat = (Material)base.DeclaringInstance;
 			Shader shader = mat.shader;
@@ -92,7 +92,7 @@ namespace UnityExplorerPlus.Inspectors.Reflect
 		}
 
 		// Token: 0x060001B5 RID: 437 RVA: 0x0000AD48 File Offset: 0x00008F48
-		protected override void TrySetValue(object value)
+		public override void TrySetValue(object value)
 		{
 			Material mat = (Material)base.DeclaringInstance;
 			Shader shader = mat.shader;
