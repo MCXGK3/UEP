@@ -1,14 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
-using Mono.Posix;
-using UnityEngine;
 using UnityEngine.UI;
-using UnityExplorer;
 using UnityExplorer.Inspectors;
 using UnityExplorer.Inspectors.MouseInspectors;
 using UnityExplorer.UI.Panels;
@@ -19,7 +15,7 @@ using UniverseLib.UI;
 namespace UEP;
 
 // TODO - adjust the plugin guid as needed
-[BepInDependency("com.sinai.unityexplorer", BepInDependency.DependencyFlags.HardDependency)]
+[BepInDependency(UnityExplorer.ExplorerCore.GUID, BepInDependency.DependencyFlags.HardDependency)]
 [BepInAutoPlugin(id: "io.github.shownyoung.uep")]
 public partial class UEPPlugin : BaseUnityPlugin
 {
@@ -46,9 +42,9 @@ public partial class UEPPlugin : BaseUnityPlugin
         }
         InitPanel();
         AddInspector("Collider2Ds", new Collider2DsInspector());
-        AddInspector("Enemy", new EnemyInspector());
+        AddInspector("Enemy", new UnityExplorerPlus.Inspectors.EnemyInspector());
         AddInspector("WorldPosition", new WorldPositionPin());
-        AddInspector("Renderer", new RendererInspector());
+        AddInspector("Renderer", new UnityExplorerPlus.Inspectors.RendererInspector());
         // harmony.PatchAll(typeof(Patch_MouseInspector_OnDropdownSelect));
         // harmony.PatchAll(typeof(Patch_MouseInspector_CurrentInspector));
         FsmUtils.Init();
@@ -97,7 +93,7 @@ public class Patch_MouseInspector_OnDropdownSelect
         if (flag)
         {
             InspectorPanel.Instance.MouseInspectDropdown.value = 0;
-            MouseInspector.Instance.StartInspect((MouseInspectMode)index);
+            MouseInspector.Instance.StartInspect((MouseInspectMode)index, null);
             return false;
         }
         else

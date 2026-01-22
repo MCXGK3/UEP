@@ -89,7 +89,7 @@ namespace UnityExplorerPlus.Inspectors
 		}
 
 		// Token: 0x06000173 RID: 371 RVA: 0x00009DE8 File Offset: 0x00007FE8
-		public override void OnSelectMouseInspect()
+		public override void OnSelectMouseInspect(Action<GameObject> inspectorAction)
 		{
 			bool flag = this.lastHit != null;
 			if (flag)

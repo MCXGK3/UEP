@@ -55,7 +55,7 @@ namespace UnityExplorerPlus.Inspectors
 		}
 
 		// Token: 0x060001AB RID: 427 RVA: 0x0000ABD4 File Offset: 0x00008DD4
-		public override void OnSelectMouseInspect()
+		public override void OnSelectMouseInspect(Action<GameObject> inspectorAction)
 		{
 			Vector3 pos = Input.mousePosition;
 			pos.z = CameraSwitcher.GetCurrentCamera().WorldToScreenPoint(Vector3.zero).z;

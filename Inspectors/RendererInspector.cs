@@ -64,7 +64,7 @@ namespace UnityExplorerPlus.Inspectors
 		}
 
 		// Token: 0x06000191 RID: 401 RVA: 0x0000A226 File Offset: 0x00008426
-		public override void OnSelectMouseInspect()
+		public override void OnSelectMouseInspect(Action<GameObject> inspectorAction)
 		{
 			this.resultPanel.Result.Clear();
 			this.resultPanel.Result.AddRange(this.currentGameObjects);
