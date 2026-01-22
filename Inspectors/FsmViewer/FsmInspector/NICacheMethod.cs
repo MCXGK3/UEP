@@ -13,7 +13,7 @@ public class NICacheMethod : CacheMethod
         Target = target;
         base.SetInspectorOwner(null, mi);
     }
-    protected override object TryEvaluate()
+    public override object TryEvaluate()
     {
         try
         {

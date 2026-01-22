@@ -16,7 +16,7 @@ public class NICacheProperty : CacheProperty
     }
     public object Target { get; set; }
     public new object DeclaringInstance => IsStatic ? null : Target.TryCast(DeclaringType);
-    protected override object TryEvaluate()
+    public override object TryEvaluate()
     {
         try
         {
@@ -34,7 +34,7 @@ public class NICacheProperty : CacheProperty
             return null;
         }
     }
-    protected override void TrySetValue(object value)
+    public override void TrySetValue(object value)
     {
         if (!CanWrite)
             return;
