@@ -1,5 +1,5 @@
 using HutongGames.PlayMaker;
-using Mono.Posix;
+using UEP;
 
 internal static class FsmUtils
 {
@@ -11,7 +11,33 @@ internal static class FsmUtils
         PatchParse.RegisterToString<NamedVariable>(ParseNamedVariable);
         PatchParse.RegisterToString<FsmTransition>(ParseFsmTransition);
         PatchParse.Register(typeof(FsmEvent), FsmEvent.GetFsmEvent, SimpleParseFsmEvent);
+        PatchParse.RegisterComponent<PlayMakerFSM>(ParsePlayMakerFSM);
+        PatchParse.RegisterComponent<EventRegister>(ParseEventRegister);
     }
+
+    private static string ParseEventRegister(object obj, string originalString)
+    {
+        EventRegister er = (EventRegister)obj;
+        if (string.IsNullOrEmpty(er.InspectorInfo))
+        {
+            return originalString;
+        }
+        return originalString + "<color=grey>(</color><color=#7FFF00>" + er.subscribedEvent + " events</color><color=grey>)</color>";
+    }
+
+    private static string ParsePlayMakerFSM(object obj, string originalString)
+    {
+        PlayMakerFSM pm = (PlayMakerFSM)obj;
+        if (string.IsNullOrEmpty(pm.FsmName))
+        {
+            return originalString;
+        }
+        else
+        {
+            return originalString + "<color=grey>(</color><color=#7FFF00>" + pm.FsmName + "</color><color=grey>)</color>";
+        }
+    }
+
     internal static string ParseFsmState(object state)
     {
         return "<color=grey>Fsm State: </color><color=green>" + ((FsmState)state).name + "</color>";

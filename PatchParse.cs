@@ -7,21 +7,22 @@ using System.Reflection;
 using BepInEx.Logging;
 using HarmonyLib;
 using HutongGames.PlayMaker;
-using Mono.Posix;
-using UEP;
 using UnityEngine;
 using UniverseLib;
+namespace UEP;
 
 internal static class PatchParse
 {
     public delegate object TParseMethod(string input);
     public delegate string TToStringMethod(object obj);
+    public delegate string TComponentToStringMethod(object obj, string originalString);
 
     public static object customTypesToString_obj;
     public static object customTypes_obj;
     public static IDictionary customTypesToString;
     public static IDictionary customTypes;
     public static Dictionary<Type, TToStringMethod> customToStrings = new Dictionary<Type, TToStringMethod>();
+    public static Dictionary<Type, TComponentToStringMethod> customToStringsForComponent = new();
 
     public static TypeInfo parse_type;
     public static TypeInfo to_string_type;
@@ -50,7 +51,16 @@ internal static class PatchParse
         types.Add(type.FullName);
         customTypes[type.FullName] = Delegate.CreateDelegate(parse_type, parseMethod.Method);
         customTypesToString[type.FullName] = Delegate.CreateDelegate(to_string_type, toStringMethod.Method);
-
+    }
+    public static void RegisterComponent<T>(TComponentToStringMethod toStringMethod) where T : Component
+    {
+        RegisterComponent(typeof(T), toStringMethod);
+    }
+    public static void RegisterComponent(Type type, TComponentToStringMethod toStringMethod)
+    {
+        if (typeof(Component).IsAssignableFrom(type) == false) return;
+        if (customToStringsForComponent.ContainsKey(type)) return;
+        customToStringsForComponent.Add(type, toStringMethod);
     }
     public static void HackParseUtility()
     {
@@ -111,22 +121,12 @@ public static class PathchSetComponentCell
     {
         Component data = Traverse.Create(__instance.Parent).Method("GetComponentEntries").GetValue<List<Component>>()[index];
         Type type = data.GetType();
-        if (data is PlayMakerFSM pm)
+        if (PatchParse.customToStringsForComponent.TryGetValue(type, out var toStringFunc))
         {
-            if (string.IsNullOrEmpty(pm.FsmName))
-            { return; }
-            else
+            string extra = toStringFunc(data, cell.Button.ButtonText.text);
+            if (!string.IsNullOrEmpty(extra))
             {
-                cell.Button.ButtonText.text += "<color=grey>(</color><color=green>" + pm.FsmName + "</color><color=grey>)</color>";
-            }
-        }
-        else if (data is EventRegister)
-        {
-            if (string.IsNullOrEmpty(((EventRegister)data).InspectorInfo))
-            { return; }
-            else
-            {
-                cell.Button.ButtonText.text += "<color=grey>(</color><color=green>" + ((EventRegister)data).InspectorInfo + "</color><color=grey>)</color>";
+                cell.Button.ButtonText.text = extra;
             }
         }
         if (data is not MonoBehaviour)

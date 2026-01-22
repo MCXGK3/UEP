@@ -115,5 +115,9 @@ public class Patch_ReflectionInspector_For_Fsm
             __instance.UIRoot.transform.Find("TopRow/Fsm Inspector").gameObject.SetActive(true);
             UEPPlugin.logger.LogInfo("Open a fsm");
         }
+        else
+        {
+            __instance.UIRoot.transform.Find("TopRow/Fsm Inspector").gameObject.SetActive(false);
+        }
     }
 }
