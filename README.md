@@ -1,6 +1,6 @@
 # UEP
 
-There is a useful mod called UnityExplorerPlus (find it [there](https://github.com/HK-Modding-Preservation/Box074/)), which is made for HollowKnight. This mod port some of it's features to silksong and might be helpful for modding developers.
+There is a useful mod called UnityExplorerPlus (find it [there](https://github.com/Pinkuburu/UnityExplorerPlus)), which is made for HollowKnight. This mod port some of it's features to silksong and might be helpful for modding developers.
 
 Additionally, I also referenced [FSMExpress](https://github.com/nesrak1/FSMExpress) to implement an in-game FSM viewer in this mod, which can help you know exactly how the FSM runs.
 
@@ -23,3 +23,7 @@ This mod should be used with [UnityExplorer](https://github.com/sinai-dev/UnityE
 * Occasionally, connection lines may appear in incorrect positions. Reopening the viewer typically resolves this issue. If you know how to fix it permanently, feel free to raise a Pull Request.
 
 ![example](./example.png)
+
+## REFERENCE
+
+- We have referenced the code of original UnityExplorerPlus. It uses the MIT license, and the license can be found [here](Licenses/LICENSE(UnityExplorerPlus))
