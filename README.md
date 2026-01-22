@@ -26,4 +26,4 @@ This mod should be used with [UnityExplorer](https://github.com/sinai-dev/UnityE
 
 ## REFERENCE
 
-- We have referenced the code of original UnityExplorerPlus. It uses the MIT license, and the license can be found [here](Licenses/LICENSE(UnityExplorerPlus))
+- We have used the code of original UnityExplorerPlus. It uses the MIT license, and the license can be found [here](Licenses/LICENSE(UnityExplorerPlus))
