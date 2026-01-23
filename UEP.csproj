@@ -59,9 +59,14 @@
       <ItemGroup>
           <Binaries Include="$(TargetPath)"/>
           <Binaries Include="$(TargetDir)/$(TargetName).pdb"/>
+          <Binaries Include="example.png"/> 
+          <Binaries Include="README.md"/>
+          <Binaries Include="thunderstore/*"/>
+          <Licenses Include="Licenses/*"/> 
       </ItemGroup>
 
-      <Copy SourceFiles="@(Binaries)" DestinationFolder="$(PluginFolder)\BepInEx\plugins\shownyoung-UEP" />
+      <Copy SourceFiles="@(Binaries)" DestinationFolder="$(PluginFolder)shownyoung-UEP" />
+      <Copy SourceFiles="@(Licenses)" DestinationFolder="$(PluginFolder)shownyoung-UEP/Licenses" />
 
       <PropertyGroup>
           <ExportFolder>bin/Publish</ExportFolder>

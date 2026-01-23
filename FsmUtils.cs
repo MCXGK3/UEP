@@ -5,13 +5,13 @@ internal static class FsmUtils
 {
     public static void Init()
     {
-        PatchParse.RegisterToString<FsmState>(ParseFsmState);
-        PatchParse.RegisterToString<PlayMakerFSM>(ParsePlayMakerFSM);
-        PatchParse.RegisterToString<FsmEvent>(ParseFsmEvent);
-        PatchParse.RegisterToString<NamedVariable>(ParseNamedVariable);
-        PatchParse.RegisterToString<FsmTransition>(ParseFsmTransition);
+        // PatchParse.RegisterToString<FsmState>(ParseFsmState);
+        // PatchParse.RegisterToString<PlayMakerFSM>(ParsePlayMakerFSM);
+        // PatchParse.RegisterToString<FsmEvent>(ParseFsmEvent);
+        // PatchParse.RegisterToString<NamedVariable>(ParseNamedVariable);
+        // PatchParse.RegisterToString<FsmTransition>(ParseFsmTransition);
         PatchParse.Register(typeof(FsmEvent), FsmEvent.GetFsmEvent, SimpleParseFsmEvent);
-        PatchParse.RegisterComponent<PlayMakerFSM>(ParsePlayMakerFSM);
+        // PatchParse.RegisterComponent<PlayMakerFSM>(ParsePlayMakerFSM);
         PatchParse.RegisterComponent<EventRegister>(ParseEventRegister);
     }
 

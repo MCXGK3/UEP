@@ -3,7 +3,7 @@ internal static class Tk2dUtils
 {
     public static void Init()
     {
-        PatchParse.RegisterToString<tk2dSpriteAnimationClip>(Parsetk2dSpriteAnimationClip);
+        // PatchParse.RegisterToString<tk2dSpriteAnimationClip>(Parsetk2dSpriteAnimationClip);
     }
 
     internal static string Parsetk2dSpriteAnimationClip(object clip)

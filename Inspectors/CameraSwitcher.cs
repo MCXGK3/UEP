@@ -9,7 +9,7 @@ using UniverseLib.UI;
 
 namespace UnityExplorerPlus.Inspectors
 {
-	[HarmonyPatch(typeof(MouseInspector), "UpdateInspect", MethodType.Normal)]
+	// [HarmonyPatch(typeof(MouseInspector), "UpdateInspect", MethodType.Normal)]
 	public class Patch_MouseInspector_UpdateInspect
 	{
 		public static bool Prefix(MouseInspector __instance)
@@ -32,7 +32,7 @@ namespace UnityExplorerPlus.Inspectors
 			}
 		}
 	}
-	[HarmonyPatch(typeof(MouseInspector), "ConstructPanelContent", MethodType.Normal)]
+	// [HarmonyPatch(typeof(MouseInspector), "ConstructPanelContent", MethodType.Normal)]
 	public class Patch_MouseInspector_ConstructPanelContent
 	{
 		public static bool Prefix(MouseInspector __instance)

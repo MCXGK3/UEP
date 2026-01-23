@@ -41,10 +41,10 @@ public partial class UEPPlugin : BaseUnityPlugin
             yield return null;
         }
         InitPanel();
-        AddInspector("Collider2Ds", new Collider2DsInspector());
-        AddInspector("Enemy", new UnityExplorerPlus.Inspectors.EnemyInspector());
-        AddInspector("WorldPosition", new WorldPositionPin());
-        AddInspector("Renderer", new UnityExplorerPlus.Inspectors.RendererInspector());
+        // AddInspector("Collider2Ds", new Collider2DsInspector());
+        // AddInspector("Enemy", new UnityExplorerPlus.Inspectors.EnemyInspector());
+        // AddInspector("WorldPosition", new WorldPositionPin());
+        // AddInspector("Renderer", new UnityExplorerPlus.Inspectors.RendererInspector());
         // harmony.PatchAll(typeof(Patch_MouseInspector_OnDropdownSelect));
         // harmony.PatchAll(typeof(Patch_MouseInspector_CurrentInspector));
         FsmUtils.Init();

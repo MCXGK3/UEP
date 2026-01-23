@@ -1,0 +1,12 @@
+{
+    "namespace": "shownyoung",
+    "name": "CUEP",
+    "description": "Add more features to Cinematic_Unity_Explorer",
+    "version_number": "0.5.1",
+    "dependencies": [
+        "BepInEx-BepInExPack_Silksong-5.4.2304",
+        "Yukikaco-Cinematic_Unity_Explorer-1.3.1"
+    ],
+    "website_url": "https://github.com/MCXGK3/UEP/tree/For_CUE",
+    "FullName": "shownyoung-CUEP"
+}
